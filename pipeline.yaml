@@ -1,0 +1,12 @@
+tasks:
+  - source: load-data.py
+    product:
+      nb: executed-notebooks/load-data.ipynb
+      images: products/img-loaded.npy
+      labels: products/lab-loaded.npy
+  - source: nvidia-model.py
+    product:
+      nb: executed-notebooks/nvidia-model.ipynb
+      model: products/model-nvidia/model
+      # images: products/img-processed.npy
+      # images: products/lab-processed.npy

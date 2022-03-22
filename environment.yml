@@ -1,0 +1,17 @@
+name: picar
+
+channels:
+  - conda-forge
+  - apple
+
+dependencies:
+  - python=3.9
+  - ipywidgets
+  - pip
+  - opencv
+  - tqdm
+  - jupyterlab
+  - pip:
+    - ploomber
+    - pandas
+    - numpy
