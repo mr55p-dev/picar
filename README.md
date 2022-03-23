@@ -20,6 +20,13 @@ conda activate picar
 
 ## Running the pipeline
 
+Create an `env.yaml` file which defines the following:
+```yaml
+n_samples:	<number of items to take from the training data>
+n_epochs: 	<number of epochs to train for>
+batch_size:	<number of elements in each batch>
+```
+
 ```sh
 ploomber build
 ```

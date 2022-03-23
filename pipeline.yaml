@@ -1,12 +1,18 @@
 tasks:
   - source: load-data.py
+    params:
+      n_samples: '{{n_samples}}'
     product:
       nb: executed-notebooks/load-data.ipynb
       images: products/img-loaded.npy
       labels: products/lab-loaded.npy
   - source: nvidia-model.py
+    params:
+      n_epochs: '{{n_epochs}}'
+      batch_size: '{{batch_size}}'
     product:
-      nb: executed-notebooks/nvidia-model.ipynb
+      nb: executed-notebooks/nvidia-model/training.ipynb
       model: products/model-nvidia/model
-      # images: products/img-processed.npy
-      # images: products/lab-processed.npy
+  - source: predict.py
+    product:
+      nb: executed-notebooks/nvidia-model/predictions.ipynb

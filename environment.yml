@@ -11,6 +11,7 @@ dependencies:
   - opencv
   - tqdm
   - jupyterlab
+  - matplotlib
   - pip:
     - ploomber
     - pandas

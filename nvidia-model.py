@@ -10,12 +10,16 @@ from tensorflow import keras
 from tensorflow.keras.layers import Dense, MaxPooling2D, Flatten, Conv2D, Dropout
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
+import csv
+from datetime import datetime
+
 # %%
 labels = np.load(upstream['load-data']['labels'])
 images = np.load(upstream['load-data']['images'])
 
 # %%
-log_dir = "products/model-nvidia/train_logs"
+now = datetime.now()
+log_dir = now.strftime("products/model-nvidia/tb_logs/%m-%d/%H:%M:%S/")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 # %% This is the Nvidia model
@@ -30,7 +34,7 @@ l = Dense(1164)(l)
 l = Dense(50)(l)
 l = Dense(2)(l)
 
-model = keras.Model(inputs=inputs, outputs=l, name="NVidia_model")
+model = keras.Model(inputs=inputs, outputs=l, name="nvidia_model")
 model.compile(
     optimizer=tf.keras.optimizers.Nadam(),
     loss=tf.keras.losses.MeanSquaredError(),
@@ -39,14 +43,22 @@ model.compile(
 
 model.summary()
 # %%
-x = model.fit(
+fitted = model.fit(
     images,
     labels,
-    epochs=200,
-    batch_size=100,
+    epochs=n_epochs,
+    batch_size=batch_size,
     validation_split=0.2,
     callbacks=[tensorboard_callback]
 )
 
+# %%
+def save_metrics(cb, path):
+    with open(path, 'w') as f:
+        w = csv.writer(f)
+        w.writerow(cb.history.keys())
+        w.writerows(zip(*cb.history.values()))
+        
 # %%
+save_metrics(fitted, "products/model-nvidia/metrics.csv")
 model.save("products/model-nvidia/model")

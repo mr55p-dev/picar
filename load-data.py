@@ -11,7 +11,6 @@ import pathlib
 from tqdm.notebook import tqdm
 
 # %%
-N_SAMPLES = 200
 SCALE = .125
 
 # %%
@@ -30,12 +29,12 @@ assert (image_labels["image_id"].values == index).all()
 # Allow n to be a fraction or integer number
 label_matrix = image_labels.values
 n_vals = index.shape[0]
-if N_SAMPLES == 0:
+if n_samples == 0:
     instances = n_vals
-elif N_SAMPLES < 1:
-    instances = int(ceil(n_vals * N_SAMPLES))
+elif n_samples < 1:
+    instances = int(ceil(n_vals * n_samples))
 else:
-    instances = N_SAMPLES
+    instances = n_samples
 
 
 # Select some random indices
@@ -61,7 +60,7 @@ def load_img(p):
     return cv2.resize(
         cv2.cvtColor(
             cv2.imread(str(p[1])), # Load the image from the file path
-            cv2.COLOR_RGB2YUV     # Flatten the colours into grayscale
+            cv2.COLOR_BGR2YUV     # Flatten the colours into grayscale
         ),
         img_shape                    # Resize the image to the "RESCALE" shape
     ) / 255 # Normalize the image
