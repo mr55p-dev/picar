@@ -23,6 +23,13 @@ log_dir = now.strftime("products/model-nvidia/tb_logs/%m-%d/%H:%M:%S/")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 remote_callback = tf.keras.callbacks.RemoteMonitor(root="https://tf-picar-listener.herokuapp.com/", path="tf/nvidia-model")
 
+# %%
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# %%
+datagen = ImageDataGenerator()
+datagen.fit(images)
+
 # %% This is the Nvidia model
 inputs = keras.Input(shape=(40, 60, 3))
 l = Conv2D(24, (5, 5), strides=(2, 2))(inputs)
@@ -45,8 +52,7 @@ model.compile(
 model.summary()
 # %%
 fitted = model.fit(
-    images,
-    labels,
+    datagen.flow(images, labels, batch_size=batch_size),
     epochs=n_epochs,
     batch_size=batch_size,
     validation_split=0.2,
