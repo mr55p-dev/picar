@@ -22,6 +22,13 @@ now = datetime.now()
 log_dir = now.strftime("products/model-nvidia/tb_logs/%m-%d/%H:%M:%S/")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
+# %%
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# %%
+datagen = ImageDataGenerator()
+datagen.fit(images)
+
 # %% This is the Nvidia model
 inputs = keras.Input(shape=(40, 60, 3))
 l = Conv2D(24, (5, 5), strides=(2, 2))(inputs)
@@ -44,21 +51,18 @@ model.compile(
 model.summary()
 # %%
 fitted = model.fit(
-    images,
-    labels,
+    datagen.flow(images, labels, batch_size=batch_size),
     epochs=n_epochs,
-    batch_size=batch_size,
-    validation_split=0.2,
     callbacks=[tensorboard_callback]
 )
 
-# %%
+# %%
 def save_metrics(cb, path):
     with open(path, 'w') as f:
         w = csv.writer(f)
         w.writerow(cb.history.keys())
         w.writerows(zip(*cb.history.values()))
-        
+
 # %%
 save_metrics(fitted, "products/model-nvidia/metrics.csv")
 model.save("products/model-nvidia/model")
