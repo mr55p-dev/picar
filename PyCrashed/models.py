@@ -20,12 +20,6 @@ class Model():
         use_checkpoints=True,
         verbose=True,
         ):
-        # Initialize wandb
-        wandb.init(project="PyCrashed", entity="mr55p")
-        wandb.config = {
-            "early_stopping": use_early_stopping
-        }
-
         # Set the model name
         self.name = name
         self.verbosity = 1 if verbose else 0
@@ -87,8 +81,10 @@ class Model():
             metrics=self.metrics,
         )
         # Save the metrics
-        wandb.config["optimizer"] = self.optimizer._name
-        wandb.config["loss"] = self.loss.name
+        wandb.config.update({
+            "optimizer function":  self.optimizer._name,
+            "loss function": self.loss.name
+        })
         return self.model
 
     def fit(self,

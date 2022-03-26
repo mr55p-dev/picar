@@ -1,4 +1,6 @@
 import argparse
+from distutils.command.config import config
+import wandb
 from PyCrashed.utils import list_models, train_model, predict
 
 parser = argparse.ArgumentParser(description='Train some models.')
@@ -29,4 +31,7 @@ predict_command.add_argument("-o", "--output", help="The output file destination
 predict_command.add_argument("--silent", help="Hide pregress", default=True, action="store_false", dest="verbose")
 predict_command.set_defaults(func=predict)
 args = parser.parse_args()
+
+wandb.init(project="PyCrashed", entity="mr55p", config=args)
+
 args.func(args)
