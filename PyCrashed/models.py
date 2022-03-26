@@ -11,39 +11,45 @@ from PyCrashed.pipeline import test_ds, train_ds, val_ds
 
 
 class Model():
-    def __init__(self, name: str):
+    def __init__(self, name: str, use_logging=True, use_early_stopping=True, use_checkpoints=True):
         # Set the model name
         self.name = name
-        now = datetime.now()
-        log_dir = now.strftime(f"products/{self.name}/tb_logs/%m-%d/%H:%M:%S/")
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=log_dir,
-            histogram_freq=1
-        )
-        remote_callback = tf.keras.callbacks.RemoteMonitor(
-            root="https://tf-picar-listener.herokuapp.com/",
-            path=f"tf/{self.name}"
-        )
-        save_callback = tf.keras.callbacks.ModelCheckpoint(
-            f"products/{self.name}/checkpoint",
-            monitor='val_loss',
-            save_best_only=False,
-            save_weights_only=True
-        )
-        early_callback = tf.keras.callbacks.EarlyStopping(
-            monitor='val_loss',
-            min_delta=0,
-            patience=2,
-            restore_best_weights=True
-        )
+        self.callbacks = []
+        if use_logging:
+            now = datetime.now()
+            log_dir = now.strftime(f"products/{self.name}/tb_logs/%m-%d/%H:%M:%S/")
+            self.callbacks.append(
+                tf.keras.callbacks.TensorBoard(
+                    log_dir=log_dir,
+                    histogram_freq=1
+                )
+            )
+            self.callbacks.append(
+                remote_callback = tf.keras.callbacks.RemoteMonitor(
+                    root="https://tf-picar-listener.herokuapp.com/",
+                    path=f"tf/{self.name}"
+                )
+            )
+        if use_checkpoints:
+            self.callbacks.append(
+                tf.keras.callbacks.ModelCheckpoint(
+                    f"products/{self.name}/checkpoint",
+                    monitor='val_loss',
+                    save_best_only=False,
+                    save_weights_only=True
+                )
+            )
+        if use_early_stopping:
+            self.callbacks.append(
+                tf.keras.callbacks.EarlyStopping(
+                    monitor='val_loss',
+                    min_delta=0,
+                    patience=2,
+                    restore_best_weights=True
+                )
+            )
 
         # Set useful default attrs
-        self.callbacks = (
-            tensorboard_callback,
-            remote_callback,
-            save_callback,
-            early_callback
-        )
         self.optimizer = tf.keras.optimizers.Nadam()
         self.loss = tf.keras.losses.MeanSquaredError()
         self.metrics = [
@@ -110,8 +116,8 @@ class Model():
             self._save_metrics(self.fit_metrics, Path.joinpath(path, "fit_metrics.csv"))
 
 class NVidia(Model):
-    def __init__(self):
-        super().__init__("Nvidia")
+    def __init__(self, **kwargs):
+        super().__init__("Nvidia", **kwargs)
 
     def specify_model(self):
         i = tf.keras.Input(shape=(320, 240, 3))
@@ -135,8 +141,8 @@ class NVidia(Model):
 
 
 class ImageNetPretrained(Model):
-    def __init__(self):
-        super().__init__("ImageNetPretrained")
+    def __init__(self, **kwargs):
+        super().__init__("ImageNetPretrained", **kwargs)
 
     def specify_model(self):
         base_model = tf.keras.applications.MobileNetV2(
@@ -157,8 +163,8 @@ class ImageNetPretrained(Model):
 
 
 class MultiHeaded(Model):
-    def __init__(self):
-        super().__init__("MultiHeaded")
+    def __init__(self, **kwargs):
+        super().__init__("MultiHeaded", **kwargs)
         self.loss = (
             tf.keras.losses.MeanSquaredError(),
             tf.keras.losses.BinaryCrossentropy()
