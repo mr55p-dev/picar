@@ -137,13 +137,19 @@ class Model():
         if hasattr(self, "fit_metrics"):
             self._save_metrics(self.fit_metrics, Path.joinpath(path, "fit_metrics.csv"))
 
+    def restore(self, path = None) -> None:
+        if not path:
+            path = Path(f"products/{self.name}/checkpoint")
+        self.model.load_weights(path)
+
 class NVidia(Model):
     def __init__(self, **kwargs):
         super().__init__("Nvidia", **kwargs)
 
     def specify_model(self):
         i = tf.keras.Input(shape=(320, 240, 3))
-        l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2))(i)
+        l = tf.keras.layers.Resizing(240, 240)(i)
+        l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2))(l)
         l = tf.keras.layers.Conv2D(36, (5, 5), strides=(1, 1))(l)
         l = tf.keras.layers.MaxPooling2D((2, 2))(l)
         l = tf.keras.layers.Conv2D(48, (5, 5), strides=(1, 1))(l)
@@ -199,6 +205,7 @@ class MultiHeaded(Model):
 
     def specify_model(self):
         i = tf.keras.Input(shape=(320, 240, 3))
+        l = tf.keras.layers.Resizing(240, 240)(i)
         l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2))(i)
         l = tf.keras.layers.Conv2D(36, (5, 5), strides=(1, 1))(l)
         l = tf.keras.layers.MaxPooling2D((2, 2))(l)
