@@ -179,7 +179,7 @@ class MultiHeaded(Model):
         )
         self.metrics = (
             tf.keras.metrics.RootMeanSquaredError(),
-            tf.keras.metrics.Accuracy(),
+            tf.keras.metrics.BinaryAccuracy(),
             tf.keras.metrics.KLDivergence()
         )
 

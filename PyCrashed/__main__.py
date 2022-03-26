@@ -2,6 +2,8 @@ import argparse
 from PyCrashed.models import NVidia, ImageNetPretrained, MultiHeaded, Model
 from PyCrashed.pipeline import Dataset
 
+from tabulate import tabulate
+
 models = {
     "nvidia": NVidia,
     "imagenet": ImageNetPretrained,
@@ -33,6 +35,10 @@ model: Model = models[args.model](use_logging=args.logging, use_early_stopping=a
 
 print("Building model")
 model.build().summary()
+
+fmt = lambda k: k.replace('_', ' ').title()
+print("Executing model using the following dataset configuration")
+print(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
 
 print("Training model")
 model.fit(n_epochs=args.epochs)
