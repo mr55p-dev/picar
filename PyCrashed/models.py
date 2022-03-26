@@ -7,7 +7,7 @@ from typing import Tuple
 
 import tensorflow as tf
 
-from PyCrashed.pipeline import test_ds, train_ds, val_ds
+from PyCrashed.pipeline import Dataset
 
 
 class Model():
@@ -25,7 +25,7 @@ class Model():
                 )
             )
             self.callbacks.append(
-                remote_callback = tf.keras.callbacks.RemoteMonitor(
+                tf.keras.callbacks.RemoteMonitor(
                     root="https://tf-picar-listener.herokuapp.com/",
                     path=f"tf/{self.name}"
                 )
@@ -70,19 +70,27 @@ class Model():
         return self.model
 
     def fit(self,
-            data: tf.data.Dataset = train_ds,
-            validation_data: tf.data.Dataset = val_ds,
+            data: tf.data.Dataset = None,
+            validation_data: tf.data.Dataset = None,
             n_epochs: int = 10
         ):
+        if not data:
+            data = Dataset.load("train") 
+        if not validation_data:
+            validation_data = Dataset.load("val")
+
         self.fit_metrics = self.model.fit(
             data,
             epochs=n_epochs,
             validation_data=validation_data,
             callbacks=self.callbacks
         )
+
         return self.fit_metrics
 
-    def test(self, data: tf.data.Dataset = test_ds):
+    def test(self, data: tf.data.Dataset = None):
+        if not data:
+            data = Dataset.load("test")
         self.test_metrics = self.model.evaluate(data)
         return self.test_metrics
 
