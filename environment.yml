@@ -16,3 +16,4 @@ dependencies:
     - ploomber
     - pandas
     - numpy
+    - wandb

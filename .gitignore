@@ -9,6 +9,9 @@
 *.npx
 *.png
 
+.vsvode
+wandb/
+
 # tests output
 exploratory-tests/
 

@@ -3,13 +3,13 @@ import os
 from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
-from tabnanny import verbose
 from typing import Tuple
 
 import tensorflow as tf
+import wandb
+from wandb.keras import WandbCallback
 
 from PyCrashed.pipeline import Dataset
-
 
 class Model():
     def __init__(
@@ -20,10 +20,16 @@ class Model():
         use_checkpoints=True,
         verbose=True,
         ):
+        # Initialize wandb
+        wandb.init(project="PyCrashed", entity="mr55p")
+        wandb.config = {
+            "early_stopping": use_early_stopping
+        }
+
         # Set the model name
         self.name = name
         self.verbosity = 1 if verbose else 0
-        self.callbacks = []
+        self.callbacks = [WandbCallback()]
         if use_logging:
             now = datetime.now()
             log_dir = now.strftime(f"products/{self.name}/tb_logs/%m-%d/%H:%M:%S/")
@@ -80,6 +86,9 @@ class Model():
             loss=self.loss,
             metrics=self.metrics,
         )
+        # Save the metrics
+        wandb.config["optimizer"] = self.optimizer._name
+        wandb.config["loss"] = self.loss.name
         return self.model
 
     def fit(self,
@@ -87,8 +96,11 @@ class Model():
             validation_data: tf.data.Dataset = None,
             n_epochs: int = 10
         ):
+        # Save the metrics
+        wandb.config["epochs"] = n_epochs
+
         if not data:
-            data = Dataset.load("train") 
+            data = Dataset.load("train")
         if not validation_data:
             validation_data = Dataset.load("val")
 

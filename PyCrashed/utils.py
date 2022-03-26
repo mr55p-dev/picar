@@ -8,7 +8,6 @@ import tensorflow as tf
 
 from tabulate import tabulate
 
-
 def normal_to_raw(x: np.array) -> np.array:
     angle = np.rint((80 * x[0]) + 50)
     angle = 5 * np.rint(angle / 5)
@@ -35,6 +34,11 @@ def list_models(args):
         models[args.model]().build().summary()
     else:
         print('\n'.join(models.keys()))
+
+def restore_model(args):
+    model: Model = models[args.model]()
+    model.build()
+    model.restore(args.path)
 
 def train_model(args):
     printf = get_printf(args.verbose)
