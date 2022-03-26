@@ -3,6 +3,7 @@ import os
 from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
+from tabnanny import verbose
 from typing import Tuple
 
 import tensorflow as tf
@@ -11,9 +12,17 @@ from PyCrashed.pipeline import Dataset
 
 
 class Model():
-    def __init__(self, name: str, use_logging=True, use_early_stopping=True, use_checkpoints=True):
+    def __init__(
+        self,
+        name: str,
+        use_logging=True,
+        use_early_stopping=True,
+        use_checkpoints=True,
+        verbose=True,
+        ):
         # Set the model name
         self.name = name
+        self.verbosity = 1 if verbose else 0
         self.callbacks = []
         if use_logging:
             now = datetime.now()
@@ -66,7 +75,11 @@ class Model():
         # Builds a model according to the inputs and outputs specified
         i, o = self.specify_model()
         self.model = tf.keras.Model(inputs=i, outputs=o, name="nvidia")
-        self.model.compile(optimizer=self.optimizer, loss=self.loss, metrics=self.metrics)
+        self.model.compile(
+            optimizer=self.optimizer,
+            loss=self.loss,
+            metrics=self.metrics,
+        )
         return self.model
 
     def fit(self,
@@ -83,6 +96,7 @@ class Model():
             data,
             epochs=n_epochs,
             validation_data=validation_data,
+            verbose=self.verbosity,
             callbacks=self.callbacks
         )
 
@@ -91,7 +105,7 @@ class Model():
     def test(self, data: tf.data.Dataset = None):
         if not data:
             data = Dataset.load("test")
-        self.test_metrics = self.model.evaluate(data)
+        self.test_metrics = self.model.evaluate(data, verbose=self.verbosity)
         return self.test_metrics
 
     def add_callback(self, callback):
