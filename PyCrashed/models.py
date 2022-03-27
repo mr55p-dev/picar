@@ -53,7 +53,7 @@ class Model():
                 tf.keras.callbacks.EarlyStopping(
                     monitor='val_loss',
                     min_delta=0,
-                    patience=5,
+                    patience=10,
                     restore_best_weights=True
                 )
             )
