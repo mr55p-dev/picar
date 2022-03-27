@@ -16,6 +16,7 @@ train_command.add_argument("-e", "--epochs", help="Number of epochs to train for
 train_command.add_argument("-b", "--batch", help="Number of instances in a batch.", type=int, default=10)
 train_command.add_argument("-nt", "--n-train", help="Number of instances to use for training. (percentage)", type=float)
 train_command.add_argument("-nv", "--n-val", help="Number of instances to use for validation. (percentage)", type=float)
+train_command.add_argument("-p", "--paitence", help="How much paitence to have", type=int, default=5)
 train_command.add_argument("--silent", help="Hide model pregress", default=True, action="store_false", dest="verbose")
 train_command.add_argument("--no-train", help="Should the model be fitted to the data", default=True, action="store_false", dest="train")
 train_command.add_argument("--no-test", help="Should the model be tested on the data", default=True, action="store_false", dest="test")

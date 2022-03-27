@@ -16,7 +16,7 @@ class Model():
         self,
         name: str,
         use_logging=True,
-        use_early_stopping=True,
+        paitence=5,
         use_checkpoints=True,
         verbose=True,
         ):
@@ -48,12 +48,12 @@ class Model():
                     save_weights_only=True
                 )
             )
-        if use_early_stopping:
+        if paitence:
             self.callbacks.append(
                 tf.keras.callbacks.EarlyStopping(
                     monitor='val_loss',
                     min_delta=0,
-                    patience=10,
+                    patience=paitence,
                     restore_best_weights=True
                 )
             )
