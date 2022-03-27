@@ -113,8 +113,8 @@ def predict(args):
 
     # # Adjust values
     printf("Adjusting values... ", end="")
-    predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
-    predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
+    # predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
+    # predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
     printf("Done!")
 
     # Write to csv
