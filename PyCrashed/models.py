@@ -53,7 +53,7 @@ class Model():
                 tf.keras.callbacks.EarlyStopping(
                     monitor='val_loss',
                     min_delta=0,
-                    patience=2,
+                    patience=5,
                     restore_best_weights=True
                 )
             )
@@ -170,6 +170,37 @@ class NVidia(Model):
         l = tf.keras.layers.MaxPooling2D((2, 2))(l)
         l = tf.keras.layers.Flatten()(l)
         l = tf.keras.layers.Dense(1164, activation="relu")(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.Dense(64, activation="relu")(l)
+        o = tf.keras.layers.Dense(2)(l)
+        return i, o
+
+class NVidiaBatchnorm(Model):
+    def __init__(self, **kwargs):
+        super().__init__("Nvidia_batchnorm", **kwargs)
+
+    def specify_model(self):
+        i = tf.keras.Input(shape=(320, 240, 3))
+        l = tf.keras.layers.Resizing(240, 240)(i)
+        l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2), activation="relu")(l)
+        l = tf.keras.layers.Conv2D(36, (5, 5), strides=(1, 1), activation="relu")(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
+        l = tf.keras.layers.Conv2D(48, (5, 5), strides=(1, 1), activation="relu")(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
+        l = tf.keras.layers.Conv2D(64, (5, 5), strides=(1, 1), activation="relu")(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
+        l = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1), activation="relu")(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
+        l = tf.keras.layers.Conv2D(96, (3, 3), strides=(1, 1), activation="relu")(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
+        l = tf.keras.layers.Flatten()(l)
+        l = tf.keras.layers.Dense(1164, activation="relu")(l)
+        l = tf.keras.layers.BatchNormalization()(l)
         l = tf.keras.layers.Dropout(0.2)(l)
         l = tf.keras.layers.Dense(64, activation="relu")(l)
         o = tf.keras.layers.Dense(2)(l)

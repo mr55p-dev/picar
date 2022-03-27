@@ -1,5 +1,5 @@
 from pathlib import Path
-from PyCrashed.models import NVidia, ImageNetPretrained, MultiHeaded, Model
+from PyCrashed.models import NVidia, NVidiaBatchnorm, ImageNetPretrained, MultiHeaded, Model
 from PyCrashed.pipeline import Dataset
 
 import numpy as np
@@ -25,8 +25,9 @@ def get_printf(verbose):
 
 models = {
     "nvidia": NVidia,
+    "nvidia_batchnorm": NVidiaBatchnorm,
     "imagenet": ImageNetPretrained,
-    "multiheaded": MultiHeaded
+    "multiheaded": MultiHeaded,
 }
 
 def list_models(args):
@@ -41,26 +42,29 @@ def restore_model(args):
     model.restore(args.path)
 
 def train_model(args):
-    tf.debugging.set_log_device_placement(True)
+
+    printf = get_printf(args.verbose)
+
+    printf("Configuring data pipeline... ", end="")
+    if args.n_train:
+        Dataset.set("N_TRAIN", args.n_train)
+    if args.batch:
+        Dataset.set("N_VAL", args.n_val)
+    if args.n_val:
+        Dataset.set("BATCH_SIZE", args.batch)
+    printf("Done!")
+
+    printf("Building model... ", end="")
+
+    # tf.debugging.set_log_device_placement(True) # Enable device placement debug messages
+    # Find the device GPUs and make them abailable for the mirrored strategy
     gpus = tf.config.list_logical_devices('GPU')
     strategy = tf.distribute.MirroredStrategy(gpus)
+
+    ds = Dataset.load("train")
+
+    # Compile the model within the cope
     with strategy.scope():
-        printf = get_printf(args.verbose)
-
-        printf("Configuring data pipeline... ", end="")
-        if args.n_train:
-            Dataset.set("N_TRAIN", args.n_train)
-        if args.batch:
-            Dataset.set("N_VAL", args.n_val)
-        if args.n_val:
-            Dataset.set("BATCH_SIZE", args.batch)
-        printf("Done!")
-
-        ds = Dataset.load("train")
-        ds = tf.distribute.Strategy.experimental_distribute_dataset(
-            strategy, ds
-        )
-
         printf("Instantiating model... ", end="")
         model: Model = models[args.model](
             use_logging=args.logging,
@@ -69,26 +73,24 @@ def train_model(args):
             verbose=args.verbose
         )
         printf("Done!")
+        model.build()
+    printf("Done!")
 
-        printf("Building model... ", end="")
-        m = model.build()
-        printf("Done!")
+    fmt = lambda k: k.replace('_', ' ').title()
+    printf("Executing model using the following dataset configuration")
+    printf(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
 
-        fmt = lambda k: k.replace('_', ' ').title()
-        printf("Executing model using the following dataset configuration")
-        printf(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
+    if args.train:
+        printf("Training model")
+        model.fit(n_epochs=args.epochs, data=ds)
 
-        if args.train:
-            printf("Training model")
-            model.fit(n_epochs=args.epochs, data=ds)
+    if args.test and args.train:
+        printf("Testing model")
+        model.test()
 
-        if args.test and args.train:
-            printf("Testing model")
-            model.test()
-
-        if args.save and args.train:
-            printf("Saving model")
-            model.save()
+    if args.save and args.train:
+        printf("Saving model")
+        model.save()
 
 def predict(args):
     printf = get_printf(args.verbose)

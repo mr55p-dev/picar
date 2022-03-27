@@ -7,9 +7,9 @@ import pandas as pd
 
 class Dataset:
     _props = {
-        "N_TRAIN": 100,
-        "N_TEST": 100,
-        "N_VAL": 20,
+        "N_TRAIN": .1,
+        "N_TEST": .1,
+        "N_VAL": .05,
         "BATCH_SIZE": 8,
     }
 
@@ -64,12 +64,13 @@ class Dataset:
         )
 
         ds = tf.data.Dataset.list_files(Dataset._IMAGE_PATHS)
+        n_items = len(ds)
         ds = ds.map(tf_fetch_data, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)
         if method in ["validate", "val"]:
-            ds = ds.skip(Dataset._props["N_TRAIN"])
+            ds = ds.skip(int(n_items * Dataset._props["N_TRAIN"]))
         elif method == "test":
-            ds = ds.skip(Dataset._props["N_TRAIN"] + Dataset._props["N_TEST"])
-        ds = ds.take(Dataset._props["N_TRAIN"])
+            ds = ds.skip(int(n_items * (Dataset._props["N_TRAIN"] + Dataset._props["N_TEST"])))
+        ds = ds.take(int(n_items * Dataset._props["N_TRAIN"]))
         ds = ds.batch(Dataset._props["BATCH_SIZE"])
         return ds.cache().prefetch(tf.data.AUTOTUNE)
 
