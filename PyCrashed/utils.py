@@ -41,45 +41,54 @@ def restore_model(args):
     model.restore(args.path)
 
 def train_model(args):
-    printf = get_printf(args.verbose)
+    tf.debugging.set_log_device_placement(True)
+    gpus = tf.config.list_logical_devices('GPU')
+    strategy = tf.distribute.MirroredStrategy(gpus)
+    with strategy.scope():
+        printf = get_printf(args.verbose)
 
-    printf("Configuring data pipeline... ", end="")
-    if args.n_train:
-        Dataset.set("N_TRAIN", args.n_train)
-    if args.batch:
-        Dataset.set("N_VAL", args.n_val)
-    if args.n_val:
-        Dataset.set("BATCH_SIZE", args.batch)
-    printf("Done!")
+        printf("Configuring data pipeline... ", end="")
+        if args.n_train:
+            Dataset.set("N_TRAIN", args.n_train)
+        if args.batch:
+            Dataset.set("N_VAL", args.n_val)
+        if args.n_val:
+            Dataset.set("BATCH_SIZE", args.batch)
+        printf("Done!")
 
-    printf("Instantiating model... ", end="")
-    model: Model = models[args.model](
-        use_logging=args.logging,
-        use_early_stopping=args.earlystopping,
-        use_checkpoints=args.checkpoints,
-        verbose=args.verbose
-    )
-    printf("Done!")
+        ds = Dataset.load("train")
+        ds = tf.distribute.Strategy.experimental_distribute_dataset(
+            strategy, ds
+        )
 
-    printf("Building model... ", end="")
-    m = model.build()
-    printf("Done!")
+        printf("Instantiating model... ", end="")
+        model: Model = models[args.model](
+            use_logging=args.logging,
+            use_early_stopping=args.earlystopping,
+            use_checkpoints=args.checkpoints,
+            verbose=args.verbose
+        )
+        printf("Done!")
 
-    fmt = lambda k: k.replace('_', ' ').title()
-    printf("Executing model using the following dataset configuration")
-    printf(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
+        printf("Building model... ", end="")
+        m = model.build()
+        printf("Done!")
 
-    if args.train:
-        printf("Training model")
-        model.fit(n_epochs=args.epochs)
+        fmt = lambda k: k.replace('_', ' ').title()
+        printf("Executing model using the following dataset configuration")
+        printf(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
 
-    if args.test and args.train:
-        printf("Testing model")
-        model.test()
+        if args.train:
+            printf("Training model")
+            model.fit(n_epochs=args.epochs, data=ds)
 
-    if args.save and args.train:
-        printf("Saving model")
-        model.save()
+        if args.test and args.train:
+            printf("Testing model")
+            model.test()
+
+        if args.save and args.train:
+            printf("Saving model")
+            model.save()
 
 def predict(args):
     printf = get_printf(args.verbose)
