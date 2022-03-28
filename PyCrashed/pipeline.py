@@ -26,25 +26,19 @@ def assign_weights(labels):
     return labels.drop("motion_class", axis=1)
 
 class Dataset:
-    _props = {
-        "N_TRAIN": .65,
-        "N_VAL": .25,
-        "N_TEST": .1,
-        "BATCH_SIZE": 64,
-    }
     n_train = 0.65
     n_val = 0.25
     n_test = 0.1
     batch_size = 64
 
     # Define the image paths
-    _IMAGE_LABELS = assign_weights(pd.read_csv("data/training_norm.csv"))
-    _IMAGE_PATHS = [
+    labels = assign_weights(pd.read_csv("data/training_norm.csv"))
+    paths = [
             str(f)
             for f in pathlib.Path("data/training_data/training_data/").glob("*.png")
             if f.stat().st_size > 0
     ]
-    _IMAGE_PRED_PATHS = [
+    prediction_paths = [
             str(f)
             for f in pathlib.Path("data/test_data/test_data/").glob("*.png")
             if f.stat().st_size > 0
@@ -67,16 +61,12 @@ class Dataset:
         split_path = tf.strings.split(img_path, os.sep)[-1]
         path_name = tf.strings.regex_replace(split_path, '.png', '')
         img_id = int(tf.strings.to_number(path_name))
-        label_pd = Dataset._IMAGE_LABELS[Dataset._IMAGE_LABELS["image_id"] == img_id]
+        label_pd = Dataset.labels[Dataset.labels["image_id"] == img_id]
         label_np = label_pd[["angle", "speed"]].to_numpy().squeeze()
 
         # Load the class weight
         weight = label_pd["weight"].to_numpy().squeeze()
         return img, tf.convert_to_tensor(label_np), tf.convert_to_tensor(weight)
-
-    @staticmethod
-    def set(prop, val):
-        Dataset._props[prop] = val
 
     @staticmethod
     def load(method="train"):
@@ -87,9 +77,14 @@ class Dataset:
                 Tout=(tf.float32, tf.float64, tf.float64)
         )
 
-        ds = tf.data.Dataset.list_files(Dataset._IMAGE_PATHS)
-        n_items = len(ds)
+        n_items = len(Dataset.paths)
+        # Load in a tensor of strings
+        ds = tf.data.Dataset.list_files(Dataset.paths)
+
+        # Convert this to a tensor of (image, label, weight)
         ds = ds.map(tf_fetch_data, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)
+
+        # Skip and take suitable amounts for each grouping
         if method in ["validate", "val"]:
             ds = ds.skip(int(n_items * Dataset.n_train))
             ds = ds.take(int(n_items * Dataset.n_val))
@@ -98,7 +93,11 @@ class Dataset:
             ds = ds.take(int(n_items * Dataset.n_test))
         else:
             ds = ds.take(int(n_items * Dataset.n_train))
-        ds = ds.batch(Dataset._props["BATCH_SIZE"])
+        
+        # Batch according to instruction
+        ds = ds.batch(Dataset.batch_size)
+        
+        # Cache and prefetch for efficiency
         return ds.cache().prefetch(tf.data.AUTOTUNE)
 
     @staticmethod
@@ -109,6 +108,6 @@ class Dataset:
                 Tout=tf.float32
         )
 
-        ds = tf.data.Dataset.list_files(Dataset._IMAGE_PRED_PATHS)
+        ds = tf.data.Dataset.list_files(Dataset.prediction_paths)
         ds = ds.map(tf_fetch_data, deterministic=True, num_parallel_calls=tf.data.AUTOTUNE)
         return ds.batch(1).cache().prefetch(tf.data.AUTOTUNE)
