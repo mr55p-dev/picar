@@ -47,23 +47,20 @@ def train_model(args):
 
     printf = get_printf(args.verbose)
 
+    # Find the device GPUs and make them available for the mirrored strategy
     # tf.debugging.set_log_device_placement(True) # Enable device placement debug messages
-    # Find the device GPUs and make them abailable for the mirrored strategy
     gpus = tf.config.list_logical_devices('GPU')
     strategy = tf.distribute.MirroredStrategy(gpus)
 
     printf("Configuring data pipeline... ", end="")
-    Dataset.set("N_TRAIN", args.train)
-    Dataset.set("N_VAL", args.val)
+    Dataset.n_train = args.train
+    Dataset.n_val = args.val
+    Dataset.batch_size = strategy.num_replicas_in_sync * args.batch
+    ds = Dataset.load("train")
     printf("Done!")
 
+    # Compile the model within the scope
     printf("Building model... ", end="")
-
-    # Configure the correct per-replica batch size
-    Dataset.set("BATCH_SIZE", strategy.num_replicas_in_sync * args.batch)
-    ds = Dataset.load("train")
-
-    # Compile the model within the cope
     printf("Instantiating model... ", end="")
     with strategy.scope():
         model: Model = models[args.model](
@@ -85,7 +82,7 @@ def train_model(args):
 
     fmt = lambda k: k.replace('_', ' ').title()
     printf("Executing model using the following dataset configuration")
-    printf(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
+    # printf(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
 
     printf("Training model")
     model.fit(n_epochs=args.epochs, data=ds)
@@ -114,8 +111,8 @@ def predict(args):
 
     # # Adjust values
     printf("Adjusting values... ", end="")
-    # predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
-    # predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
+    predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
+    predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
     printf("Done!")
 
     # Write to csv
