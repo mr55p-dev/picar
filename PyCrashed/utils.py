@@ -47,19 +47,20 @@ def train_model(args):
 
     printf = get_printf(args.verbose)
 
-    printf("Configuring data pipeline... ", end="")
-    Dataset.set("N_TRAIN", args.train)
-    Dataset.set("N_VAL", args.val)
-    Dataset.set("BATCH_SIZE", args.batch)
-    printf("Done!")
-
-    printf("Building model... ", end="")
-
     # tf.debugging.set_log_device_placement(True) # Enable device placement debug messages
     # Find the device GPUs and make them abailable for the mirrored strategy
     gpus = tf.config.list_logical_devices('GPU')
     strategy = tf.distribute.MirroredStrategy(gpus)
 
+    printf("Configuring data pipeline... ", end="")
+    Dataset.set("N_TRAIN", args.train)
+    Dataset.set("N_VAL", args.val)
+    printf("Done!")
+
+    printf("Building model... ", end="")
+
+    # Configure the correct per-replica batch size
+    Dataset.set("BATCH_SIZE", strategy.num_replicas_in_sync * args.batch)
     ds = Dataset.load("train")
 
     # Compile the model within the cope
@@ -73,16 +74,12 @@ def train_model(args):
             dropout_rate=args.dropout,
         )
 
-        if args.activation:
-            model.set_activation(args.activation)
+        # Change these properties also in scope if they are defined
+        if args.loss:       model.set_loss(args.loss)
+        if args.optimizer:  model.set_optimizer(args.optimizer)
+        if args.activation: model.set_activation(args.activation)
 
-        if args.optimizer:
-            model.set_optimizer(args.optimizer)
-        
-        if args.loss:
-            model.set_loss(args.loss)
-
-        printf("Done!")
+        # Call model.compile()
         model.build()
     printf("Done!")
 
