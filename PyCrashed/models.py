@@ -3,10 +3,10 @@ import os
 from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
+from re import I
 from typing import Tuple
 
 import tensorflow as tf
-import wandb
 from wandb.keras import WandbCallback
 
 from PyCrashed.pipeline import Dataset
@@ -15,56 +15,47 @@ class Model():
     def __init__(
         self,
         name: str,
-        use_logging=True,
-        paitence=5,
-        use_checkpoints=True,
+        use_wandb=True,
         verbose=True,
+        paitence=5,
+        kernel_width=1,
+        head_width=1,
+        dropout_rate=0.1,
         ):
         # Set the model name
         self.name = name
         self.verbosity = 1 if verbose else 0
-        self.callbacks = [WandbCallback()]
-        if use_logging:
-            now = datetime.now()
-            log_dir = now.strftime(f"products/{self.name}/tb_logs/%m-%d/%H:%M:%S/")
-            self.callbacks.append(
-                tf.keras.callbacks.TensorBoard(
-                    log_dir=log_dir,
-                    histogram_freq=1
-                )
-            )
-            self.callbacks.append(
-                tf.keras.callbacks.RemoteMonitor(
-                    root="https://tf-picar-listener.herokuapp.com/",
-                    path=f"tf/{self.name}"
-                )
-            )
-        if use_checkpoints:
-            self.callbacks.append(
-                tf.keras.callbacks.ModelCheckpoint(
-                    f"products/{self.name}/checkpoint",
-                    monitor='val_loss',
-                    save_best_only=False,
-                    save_weights_only=True
-                )
-            )
-        if paitence:
-            self.callbacks.append(
-                tf.keras.callbacks.EarlyStopping(
-                    monitor='val_loss',
-                    min_delta=0,
-                    patience=paitence,
-                    restore_best_weights=True
-                )
-            )
 
-        # Set useful default attrs
-        self.optimizer = tf.keras.optimizers.Nadam()
-        self.loss = tf.keras.losses.MeanSquaredError()
+        self.kernel_width = kernel_width
+        self.head_width = head_width
+        self.activation = "relu"
+        self.optimizer = tf.optimizers.Adam()
+        self.loss = tf.losses.MeanSquaredError()
+        self.dropout_rate = dropout_rate
+
         self.metrics = [
             tf.keras.metrics.RootMeanSquaredError(),
             tf.keras.metrics.KLDivergence()
         ]
+        self.callbacks = []
+
+        if use_wandb: self.callbacks.append(WandbCallback())
+        now = datetime.now()
+        log_dir = now.strftime(f"products/{self.name}/tb_logs/%m-%d/%H:%M:%S/")
+        self.callbacks.append(tf.keras.callbacks.TensorBoard(
+            log_dir=log_dir,
+            histogram_freq=1
+        ))
+        self.callbacks.append(tf.keras.callbacks.ModelCheckpoint(
+            f"products/{self.name}/checkpoint",
+            monitor='val_loss'
+        ))
+        if paitence: self.callbacks.append(tf.keras.callbacks.EarlyStopping(
+            monitor='val_root_mean_squared_error',
+            restore_best_weights=True,
+            patience=paitence,
+            verbose=self.verbosity
+        ))
 
     @abstractmethod
     def specify_model(self) -> Tuple:
@@ -80,11 +71,6 @@ class Model():
             loss=self.loss,
             metrics=self.metrics,
         )
-        # Save the metrics
-        wandb.config.update({
-            "optimizer function":  self.optimizer._name,
-            "loss function": self.loss.name
-        })
         return self.model
 
     def fit(self,
@@ -92,9 +78,6 @@ class Model():
             validation_data: tf.data.Dataset = None,
             n_epochs: int = 10
         ):
-        # Save the metrics
-        wandb.config["epochs"] = n_epochs
-
         if not data:
             data = Dataset.load("train")
         if not validation_data:
@@ -124,6 +107,9 @@ class Model():
 
     def set_optimizer(self, optimizer):
         self.optimizer = optimizer
+
+    def set_activation(self, activation):
+        self.activation = activation
 
     @staticmethod
     def _save_metrics(cb, path):
@@ -181,32 +167,47 @@ class NVidiaBatchnorm(Model):
 
     def specify_model(self):
         i = tf.keras.Input(shape=(320, 240, 3))
+        i = tf.keras.layers.RandomContrast(0.2)(i)
         l = tf.keras.layers.Resizing(240, 240)(i)
-        l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2), activation="relu")(l)
-        l = tf.keras.layers.Conv2D(36, (5, 5), strides=(1, 1), activation="relu")(l)
+
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (7, 7), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (7, 7), activation=self.activation)(l)
+        l = tf.keras.layers.MaxPool2D((2, 2))(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
-        l = tf.keras.layers.Conv2D(48, (5, 5), strides=(1, 1), activation="relu")(l)
+
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (7, 7), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (7, 7), activation=self.activation)(l)
+        l = tf.keras.layers.MaxPool2D((2, 2))(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
-        l = tf.keras.layers.Conv2D(64, (5, 5), strides=(1, 1), activation="relu")(l)
+
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (5, 5), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (5, 5), activation=self.activation)(l)
+        l = tf.keras.layers.MaxPool2D((2, 2))(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
-        l = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1), activation="relu")(l)
+
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (5, 5), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (5, 5), activation=self.activation)(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
-        l = tf.keras.layers.Conv2D(96, (3, 3), strides=(1, 1), activation="relu")(l)
+
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 96), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 96), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 96), (3, 3), activation=self.activation)(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
+
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 112), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 112), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 112), (3, 3), activation=self.activation)(l)
+
         l = tf.keras.layers.Flatten()(l)
-        l = tf.keras.layers.Dense(1164, activation="relu")(l)
-        l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.Dense(64, activation="relu")(l)
+        l = tf.keras.layers.Dense(int(self.head_width * 1024), activation=self.activation)(l)
+        l = tf.keras.layers.Dropout(self.dropout_rate)(l)
+        l = tf.keras.layers.Dense(int(self.head_width * 512), activation=self.activation)(l)
+        l = tf.keras.layers.Dropout(self.dropout_rate)(l)
+        l = tf.keras.layers.Dense(int(self.head_width * 8), activation=self.activation)(l)
         o = tf.keras.layers.Dense(2)(l)
         return i, o
 
-
+    
 class ImageNetPretrained(Model):
     def __init__(self, **kwargs):
         super().__init__("ImageNetPretrained", **kwargs)
@@ -219,15 +220,14 @@ class ImageNetPretrained(Model):
         inp = tf.keras.Input(shape=(320, 240, 3))
         res = tf.keras.layers.Resizing(224, 224)(inp)
         img = base_model(res, training=False)
-        l = tf.keras.layers.MaxPooling2D((2, 2), name="mp1")(img)
-        l = tf.keras.layers.Conv2D(96, (3, 3), strides=(1, 1), name="cnv1")(l)
-        l = tf.keras.layers.Flatten(name="flatten")(l)
-        l = tf.keras.layers.Dense(1164, activation="relu", name="d1")(l)
-        l = tf.keras.layers.Dropout(0.2, name="drop")(l)
-        l = tf.keras.layers.Dense(64, activation="relu", name="d2")(l)
-        o = tf.keras.layers.Dense(2, name="do")(l)
+        l = tf.keras.layers.MaxPooling2D((2, 2))(img)
+        l = tf.keras.layers.Conv2D(96, (3, 3), strides=(1, 1), activation="relu")(l)
+        l = tf.keras.layers.Flatten()(l)
+        l = tf.keras.layers.Dense(1164, activation="relu")(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.Dense(64, activation="relu")(l)
+        o = tf.keras.layers.Dense(2)(l)
         return inp, o
-
 
 class MultiHeaded(Model):
     def __init__(self, **kwargs):

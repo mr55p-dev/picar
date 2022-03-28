@@ -33,7 +33,7 @@ models = {
 
 def list_models(args):
     if args.model:
-        models[args.model]().build().summary()
+        models[args.model](use_wandb=False).build().summary()
     else:
         print('\n'.join(models.keys()))
 
@@ -48,12 +48,9 @@ def train_model(args):
     printf = get_printf(args.verbose)
 
     printf("Configuring data pipeline... ", end="")
-    if args.n_train:
-        Dataset.set("N_TRAIN", args.n_train)
-    if args.batch:
-        Dataset.set("N_VAL", args.n_val)
-    if args.n_val:
-        Dataset.set("BATCH_SIZE", args.batch)
+    Dataset.set("N_TRAIN", args.train)
+    Dataset.set("N_VAL", args.val)
+    Dataset.set("BATCH_SIZE", args.batch)
     printf("Done!")
 
     printf("Building model... ", end="")
@@ -66,14 +63,25 @@ def train_model(args):
     ds = Dataset.load("train")
 
     # Compile the model within the cope
+    printf("Instantiating model... ", end="")
     with strategy.scope():
-        printf("Instantiating model... ", end="")
         model: Model = models[args.model](
-            use_logging=args.logging,
+            verbose=args.verbose,
             paitence=args.paitence,
-            use_checkpoints=args.checkpoints,
-            verbose=args.verbose
+            kernel_width=args.kernel_width,
+            head_width=args.network_width,
+            dropout_rate=args.dropout,
         )
+
+        if args.activation:
+            model.set_activation(args.activation)
+
+        if args.optimizer:
+            model.set_optimizer(args.optimizer)
+        
+        if args.loss:
+            model.set_loss(args.loss)
+
         printf("Done!")
         model.build()
     printf("Done!")
@@ -82,17 +90,11 @@ def train_model(args):
     printf("Executing model using the following dataset configuration")
     printf(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
 
-    if args.train:
-        printf("Training model")
-        model.fit(n_epochs=args.epochs, data=ds)
+    printf("Training model")
+    model.fit(n_epochs=args.epochs, data=ds)
 
-    if args.test and args.train:
-        printf("Testing model")
-        model.test()
-
-    if args.save and args.train:
-        printf("Saving model")
-        model.save()
+    printf("Saving model")
+    model.save()
 
 def predict(args):
     printf = get_printf(args.verbose)
