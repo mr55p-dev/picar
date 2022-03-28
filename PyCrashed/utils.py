@@ -70,7 +70,7 @@ def train_model(args):
         printf("Instantiating model... ", end="")
         model: Model = models[args.model](
             use_logging=args.logging,
-            use_early_stopping=args.earlystopping,
+            use_early_stopping=args.paitence,
             use_checkpoints=args.checkpoints,
             verbose=args.verbose
         )
