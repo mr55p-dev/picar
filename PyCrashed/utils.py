@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+import wandb
 from tabulate import tabulate
 
 def normal_to_raw(x: np.array) -> np.array:
@@ -42,6 +43,7 @@ def restore_model(args):
     model.restore(args.path)
 
 def train_model(args):
+    wandb.init(project="PyCrashed", entity="mr55p", config=args)
 
     printf = get_printf(args.verbose)
 
