@@ -7,10 +7,10 @@ import pandas as pd
 
 class Dataset:
     _props = {
-        "N_TRAIN": .1,
+        "N_TRAIN": .65,
         "N_TEST": .1,
-        "N_VAL": .05,
-        "BATCH_SIZE": 8,
+        "N_VAL": .25,
+        "BATCH_SIZE": 64,
     }
 
     # Define the image paths
