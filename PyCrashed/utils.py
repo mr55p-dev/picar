@@ -1,5 +1,5 @@
 from pathlib import Path
-from PyCrashed.models import NVidia, NVidiaBatchnorm, ImageNetPretrained, MultiHeaded, ResNetPT, Model
+from PyCrashed.models import NVidia, NVidiaBatchnorm, MobileNetPT, MultiHeaded, ResNetPT, EfficientNetPT, Model
 from PyCrashed.pipeline import Dataset
 
 import numpy as np
@@ -27,7 +27,8 @@ def get_printf(verbose):
 models = {
     "nvidia": NVidia,
     "nvidia_batchnorm": NVidiaBatchnorm,
-    "imagenet": ImageNetPretrained,
+    "mobilenet": MobileNetPT,
+    "efficientnet": EfficientNetPT,
     "resnet": ResNetPT,
     "multiheaded": MultiHeaded,
 }
@@ -59,6 +60,7 @@ def train_model(args):
     Dataset.n_test = 1 - (args.train + args.val)
     Dataset.batch_size = strategy.num_replicas_in_sync * args.batch
     ds = Dataset.load("train")
+    print(len(ds))
     printf("Done!")
 
     # Compile the model within the scope

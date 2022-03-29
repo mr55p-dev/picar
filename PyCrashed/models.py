@@ -210,18 +210,70 @@ class NVidiaBatchnorm(Model):
 class ResNetPT(Model):
     def __init__(self, **kwargs):
         super().__init__("ResNetPT", **kwargs)
-        self.loss = (
-            tf.keras.losses.MeanSquaredError(),
-            tf.keras.losses.BinaryCrossentropy()
-        )
-        self.metrics = (
-            tf.keras.metrics.RootMeanSquaredError(),
-            tf.keras.metrics.BinaryAccuracy(),
-            tf.keras.metrics.KLDivergence()
-        )
+        self.loss = {
+            "angle": tf.keras.losses.MeanSquaredError(),
+            "speed": tf.keras.losses.BinaryCrossentropy()
+        }
+        self.metrics = {
+            "angle": tf.keras.metrics.RootMeanSquaredError(),
+            "speed": tf.keras.metrics.BinaryAccuracy(),
+        }
 
     def specify_model(self):
-        base_model = tf.keras.applications.ResNet152V2(
+        base_model = tf.keras.applications.ResNet50V2(
+            include_top=False,
+            weights="imagenet",
+            input_shape=(224, 224, 3),
+            pooling="avg",
+        )
+        i = tf.keras.Input(shape=(224, 224, 3))
+        i = tf.keras.layers.RandomContrast(0.2)(i)
+        l = base_model(i)
+        l = tf.keras.layers.Dense(int(self.head_width * 1024), activation=self.activation)(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Dense(int(self.head_width * 512), activation=self.activation)(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Dense(int(self.head_width * 128), activation=self.activation)(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+
+        left = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
+        left = tf.keras.layers.Dense(1, name="angle")(left)
+
+        right = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
+        right   = tf.keras.layers.Dense(1, name="speed")(right)
+        return i, (left, right)
+
+    
+class MobileNetPT(Model):
+    def __init__(self, **kwargs):
+        super().__init__("MobileNet", **kwargs)
+
+    def specify_model(self):
+        base_model = tf.keras.applications.MobileNetV2(
+            input_shape=(224, 224, 3),
+            include_top=False
+        )
+        inp = tf.keras.Input(shape=(224, 224, 3))
+        img = base_model(inp)
+        l = tf.keras.layers.MaxPooling2D((2, 2))(img)
+        l = tf.keras.layers.Conv2D(96, (3, 3), strides=(1, 1), activation="relu")(l)
+        l = tf.keras.layers.Flatten()(l)
+        l = tf.keras.layers.Dense(1164, activation="relu")(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.Dense(64, activation="relu")(l)
+        o = tf.keras.layers.Dense(2)(l)
+        return inp, o
+
+    
+class EfficientNetPT(Model):
+    def __init__(self, **kwargs):
+        super().__init__("EfficientNet", **kwargs)
+
+    def specify_model(self):
+        base_model = tf.keras.applications.EfficientNet(
             include_top=False,
             weights="imagenet",
             input_shape=(224, 224, 3),
@@ -245,29 +297,6 @@ class ResNetPT(Model):
 
         right = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
         right   = tf.keras.layers.Dense(1)(right)
-        return i, (left, right)
-
-    
-class ImageNetPretrained(Model):
-    def __init__(self, **kwargs):
-        super().__init__("ImageNetPretrained", **kwargs)
-
-    def specify_model(self):
-        base_model = tf.keras.applications.MobileNetV2(
-            input_shape=(224, 224, 3),
-            include_top=False
-        )
-        inp = tf.keras.Input(shape=(320, 240, 3))
-        res = tf.keras.layers.Resizing(224, 224)(inp)
-        img = base_model(res, training=False)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(img)
-        l = tf.keras.layers.Conv2D(96, (3, 3), strides=(1, 1), activation="relu")(l)
-        l = tf.keras.layers.Flatten()(l)
-        l = tf.keras.layers.Dense(1164, activation="relu")(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.Dense(64, activation="relu")(l)
-        o = tf.keras.layers.Dense(2)(l)
-        return inp, o
 
 class MultiHeaded(Model):
     def __init__(self, **kwargs):
