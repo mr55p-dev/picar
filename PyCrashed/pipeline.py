@@ -106,8 +106,6 @@ class Dataset:
         f_val   = list(filter(lambda x: x in idx_val, Dataset.paths))
         f_test  = list(filter(lambda x: x in idx_test, Dataset.paths))
 
-        print(f_train)
-
         def build(files):
             return tf.data.Dataset.list_files(files)\
                 .map(tf_fetch_data, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)\

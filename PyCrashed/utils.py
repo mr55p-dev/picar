@@ -55,6 +55,7 @@ def train_model(args):
     printf("Configuring data pipeline... ", end="")
     Dataset.n_train = args.train
     Dataset.n_val = args.val
+    Dataset.n_test = 1 - (args.train + args.val)
     Dataset.batch_size = strategy.num_replicas_in_sync * args.batch
     ds = Dataset.load("train")
     printf("Done!")
