@@ -141,7 +141,7 @@ class NVidia(Model):
         super().__init__("Nvidia", **kwargs)
 
     def specify_model(self):
-        i = tf.keras.Input(shape=(320, 240, 3))
+        i = tf.keras.Input(shape=(224, 224, 3))
         l = tf.keras.layers.Resizing(240, 240)(i)
         l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2), activation="relu")(l)
         l = tf.keras.layers.Conv2D(36, (5, 5), strides=(1, 1), activation="relu")(l)
@@ -166,9 +166,8 @@ class NVidiaBatchnorm(Model):
         super().__init__("Nvidia_batchnorm", **kwargs)
 
     def specify_model(self):
-        i = tf.keras.Input(shape=(320, 240, 3))
-        i = tf.keras.layers.RandomContrast(0.2)(i)
-        l = tf.keras.layers.Resizing(240, 240)(i)
+        i = tf.keras.Input(shape=(224, 224, 3))
+        l = tf.keras.layers.RandomContrast(0.2)(i)
 
         l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (7, 7), activation=self.activation)(l)
         l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (7, 7), activation=self.activation)(l)
@@ -206,6 +205,47 @@ class NVidiaBatchnorm(Model):
         l = tf.keras.layers.Dense(int(self.head_width * 8), activation=self.activation)(l)
         o = tf.keras.layers.Dense(2)(l)
         return i, o
+
+    
+class ResNetPT(Model):
+    def __init__(self, **kwargs):
+        super().__init__("ResNetPT", **kwargs)
+        self.loss = (
+            tf.keras.losses.MeanSquaredError(),
+            tf.keras.losses.BinaryCrossentropy()
+        )
+        self.metrics = (
+            tf.keras.metrics.RootMeanSquaredError(),
+            tf.keras.metrics.BinaryAccuracy(),
+            tf.keras.metrics.KLDivergence()
+        )
+
+    def specify_model(self):
+        base_model = tf.keras.applications.ResNet152V2(
+            include_top=False,
+            weights="imagenet",
+            input_shape=(224, 224, 3),
+            pooling="avg",
+        )
+        i = tf.keras.Input(shape=(224, 224, 3))
+        i = tf.keras.layers.RandomContrast(0.2)(i)
+        l = base_model(i)
+        l = tf.keras.layers.Dense(int(self.head_width * 2048), activation=self.activation)(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Dense(int(self.head_width * 1024), activation=self.activation)(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Dense(int(self.head_width * 512), activation=self.activation)(l)
+        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+
+        left = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
+        left = tf.keras.layers.Dense(1)(left)
+
+        right = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
+        right   = tf.keras.layers.Dense(1)(right)
+        return i, (left, right)
 
     
 class ImageNetPretrained(Model):

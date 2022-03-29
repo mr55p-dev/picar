@@ -73,7 +73,7 @@ class Dataset:
         img_decoded = tf.image.decode_image(
             tf.io.read_file(img_path), channels=3, dtype=tf.float32 # Read the image as float32
         )
-        return tf.image.resize(tf.image.rgb_to_yuv(img_decoded), (240, 240))
+        return tf.image.resize(tf.image.rgb_to_yuv(img_decoded), (224, 224))
 
     # Autograph clearly does not work with this function
     @staticmethod

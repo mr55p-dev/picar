@@ -1,5 +1,5 @@
 from pathlib import Path
-from PyCrashed.models import NVidia, NVidiaBatchnorm, ImageNetPretrained, MultiHeaded, Model
+from PyCrashed.models import NVidia, NVidiaBatchnorm, ImageNetPretrained, MultiHeaded, ResNetPT, Model
 from PyCrashed.pipeline import Dataset
 
 import numpy as np
@@ -28,6 +28,7 @@ models = {
     "nvidia": NVidia,
     "nvidia_batchnorm": NVidiaBatchnorm,
     "imagenet": ImageNetPretrained,
+    "resnet": ResNetPT,
     "multiheaded": MultiHeaded,
 }
 
