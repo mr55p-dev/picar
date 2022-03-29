@@ -23,7 +23,14 @@ def assign_weights(labels):
 
     # Set a column in the labels dataframe
     labels["weight"] = labels["motion_class"].apply(lambda x: class_weights.loc[x, :])
-    return labels.drop("motion_class", axis=1)
+    return labels
+
+def get_remainder(*args):
+    return pd.concat(args).drop_duplicates(keep=False)
+
+def get_set(valid_l, prob, prop, n):
+    take_items = lambda c: valid_l[valid_l["motion_class"] == c].sample(int(n * prob * prop.loc[c]))
+    return pd.concat(map(take_items, valid_l["motion_class"].unique().squeeze()))
 
 class Dataset:
     n_train = 0.65
@@ -33,9 +40,10 @@ class Dataset:
 
     # Define the image paths
     labels = assign_weights(pd.read_csv("data/training_norm.csv"))
+    training_path = pathlib.Path("data/training_data/training_data/")
     paths = [
             str(f)
-            for f in pathlib.Path("data/training_data/training_data/").glob("*.png")
+            for f in training_path.glob("*.png")
             if f.stat().st_size > 0
     ]
     prediction_paths = [
@@ -43,6 +51,22 @@ class Dataset:
             for f in pathlib.Path("data/test_data/test_data/").glob("*.png")
             if f.stat().st_size > 0
     ]
+
+    @staticmethod
+    def _tvt_split():
+        n = Dataset.labels.shape[0]
+        grouped_labels = Dataset.labels.groupby("motion_class")
+        proportions = grouped_labels["image_id"].count().map(lambda x: x / n)
+        # Define the sets
+        train_set = get_set(Dataset.labels, Dataset.n_train, proportions, n)
+        val_set = get_set(get_remainder(Dataset.labels, train_set), Dataset.n_val, proportions, n)
+        test_set = get_remainder(Dataset.labels, train_set, val_set)
+
+        base_path = Dataset.training_path
+        def sanitize(s):
+            s = s["image_id"].to_numpy()
+            return list(map(lambda x: str(base_path.joinpath(f"{int(x)}.png")), s))
+        return sanitize(train_set), sanitize(val_set), sanitize(test_set)
 
     @staticmethod
     def _load_image(img_path: tf.Tensor):
@@ -69,7 +93,7 @@ class Dataset:
         return img, tf.convert_to_tensor(label_np), tf.convert_to_tensor(weight)
 
     @staticmethod
-    def load(method="train"):
+    def load(mode="train"):
         # Convert the python function into a py_function
         tf_fetch_data = lambda x: tf.py_function(
                 func=Dataset._fetch_data,
@@ -77,28 +101,26 @@ class Dataset:
                 Tout=(tf.float32, tf.float64, tf.float64)
         )
 
-        n_items = len(Dataset.paths)
-        # Load in a tensor of strings
-        ds = tf.data.Dataset.list_files(Dataset.paths)
+        idx_train, idx_val, idx_test = Dataset._tvt_split()
+        f_train = list(filter(lambda x: x in idx_train, Dataset.paths))
+        f_val   = list(filter(lambda x: x in idx_val, Dataset.paths))
+        f_test  = list(filter(lambda x: x in idx_test, Dataset.paths))
 
-        # Convert this to a tensor of (image, label, weight)
-        ds = ds.map(tf_fetch_data, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)
+        print(f_train)
 
-        # Skip and take suitable amounts for each grouping
-        if method in ["validate", "val"]:
-            ds = ds.skip(int(n_items * Dataset.n_train))
-            ds = ds.take(int(n_items * Dataset.n_val))
-        elif method == "test":
-            ds = ds.skip(int(n_items * (Dataset.n_train + Dataset.n_val)))
-            ds = ds.take(int(n_items * Dataset.n_test))
-        else:
-            ds = ds.take(int(n_items * Dataset.n_train))
-        
-        # Batch according to instruction
-        ds = ds.batch(Dataset.batch_size)
-        
-        # Cache and prefetch for efficiency
-        return ds.cache().prefetch(tf.data.AUTOTUNE)
+        def build(files):
+            return tf.data.Dataset.list_files(files)\
+                .map(tf_fetch_data, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)\
+                .batch(Dataset.batch_size)\
+                .cache()\
+                .prefetch(tf.data.AUTOTUNE)
+
+        if mode == "train":
+            return build(f_train)
+        elif mode in ("validate", "val"):
+            return build(f_val)
+        elif mode == "test":
+            return build(f_test)
 
     @staticmethod
     def load_test():
