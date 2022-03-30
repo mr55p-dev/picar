@@ -62,7 +62,6 @@ def train_model(args):
     Dataset.n_test = 1 - (args.train + args.val)
     Dataset.batch_size = strategy.num_replicas_in_sync * args.batch
     ds = Dataset.load("train")
-    print(len(ds))
     printf("Done!")
 
     # Compile the model within the scope
