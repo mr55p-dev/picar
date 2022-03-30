@@ -19,7 +19,7 @@ class Model():
         verbose=True,
         paitence=None,
         kernel_width=None,
-        head_width=None,
+        network_width=None,
         dropout_rate=None,
         activation=None,
         ):
@@ -28,7 +28,7 @@ class Model():
         self.verbosity = 1 if verbose else 0
 
         self.kernel_width = kernel_width or 1
-        self.head_width = head_width or 1
+        self.network_width = network_width or 1
         self.activation = activation or 'relu'
         self.optimizer = tf.optimizers.Adam()
         self.loss = tf.losses.MeanSquaredError()
@@ -162,10 +162,10 @@ class NVidia(Model):
 
         l = tf.keras.layers.Flatten()(l)
 
-        l = tf.keras.layers.Dense(128)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 128))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         l = tf.keras.layers.Dropout(0.25)(l)
-        l = tf.keras.layers.Dense(64)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 64))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         o = tf.keras.layers.Dense(2)(l)
         return i, o
@@ -232,11 +232,11 @@ class NVidiaBatchnorm(Model):
         l = tf.keras.layers.Conv2D(int(self.kernel_width * 112), (3, 3), activation=self.activation)(l)
 
         l = tf.keras.layers.Flatten()(l)
-        l = tf.keras.layers.Dense(int(self.head_width * 1024), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 1024), activation=self.activation)(l)
         l = tf.keras.layers.Dropout(self.dropout_rate)(l)
-        l = tf.keras.layers.Dense(int(self.head_width * 512), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 512), activation=self.activation)(l)
         l = tf.keras.layers.Dropout(self.dropout_rate)(l)
-        l = tf.keras.layers.Dense(int(self.head_width * 8), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 8), activation=self.activation)(l)
         o = tf.keras.layers.Dense(2)(l)
         return i, o
 
@@ -263,20 +263,20 @@ class ResNetPT(Model):
         i = tf.keras.Input(shape=(224, 224, 3))
         i = tf.keras.layers.RandomContrast(0.2)(i)
         l = base_model(i)
-        l = tf.keras.layers.Dense(int(self.head_width * 1024), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 1024), activation=self.activation)(l)
         l = tf.keras.layers.Dropout(0.2)(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.head_width * 512), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 512), activation=self.activation)(l)
         l = tf.keras.layers.Dropout(0.2)(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.head_width * 128), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 128), activation=self.activation)(l)
         l = tf.keras.layers.Dropout(0.2)(l)
         l = tf.keras.layers.BatchNormalization()(l)
 
-        left = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
+        left = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
         left = tf.keras.layers.Dense(1, name="angle")(left)
 
-        right = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
+        right = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
         right = tf.keras.layers.Dense(1, name="speed")(right)
         return i, (left, right)
 
@@ -316,20 +316,20 @@ class EfficientNetPT(Model):
         i = tf.keras.Input(shape=(224, 224, 3))
         i = tf.keras.layers.RandomContrast(0.2)(i)
         l = base_model(i)
-        l = tf.keras.layers.Dense(int(self.head_width * 2048), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 2048), activation=self.activation)(l)
         l = tf.keras.layers.Dropout(0.2)(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.head_width * 1024), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 1024), activation=self.activation)(l)
         l = tf.keras.layers.Dropout(0.2)(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.head_width * 512), activation=self.activation)(l)
+        l = tf.keras.layers.Dense(int(self.network_width * 512), activation=self.activation)(l)
         l = tf.keras.layers.Dropout(0.2)(l)
         l = tf.keras.layers.BatchNormalization()(l)
 
-        left = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
+        left = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
         left = tf.keras.layers.Dense(1)(left)
 
-        right = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
+        right = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
         right   = tf.keras.layers.Dense(1)(right)
 
 class MultiHeaded(Model):

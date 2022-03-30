@@ -1,35 +1,32 @@
-program: PyCrashed
-command:
-  - ${env}
-  - ${interpreter}
-  - "-m"
-  - ${program}
-  - "train"
-  - "--silent"
-  - ${args}
-method: bayes
+program: trainer.py
+# command:
+#   - ${env}
+#   - ${interpreter}
+#   - ${program}
+#   - ${args}
+method: grid
 metric:
   goal: minimize
   name: val_loss
 parameters:
   model:
-    values: ["nvidia_batchnorm", "imagenet"]
+    value: "nvidia"
   epochs:
     value: 100
   dropout:
-    values: [0, 0.25, 0.4]
+    values: [0, 0.25, 0.45]
   batch:
-    values: [64, 128, 256, 512]
+    values: [128, 512]
   activation:
-    value: ["relu", "leaky_relu", "elu"]
+    values: ["relu", "leaky_relu", "elu"]
   optimizer:
     values: ["adam", "adamax", "Nadam"]
   kernel-width:
-    values: [0.5, 1, 2]
+    values: [1, 2]
   network-width:
-    values: [0.5, 1, 2]
+    values: [1, 2]
   paitence:
-    value: 8
+    value: 25
 early_terminate:
   type: hyperband
   s: 2
