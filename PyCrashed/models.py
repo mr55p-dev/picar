@@ -17,21 +17,23 @@ class Model():
         name: str,
         use_wandb=True,
         verbose=True,
-        paitence=5,
-        kernel_width=1,
-        head_width=1,
-        dropout_rate=0.1,
+        paitence=None,
+        kernel_width=None,
+        head_width=None,
+        dropout_rate=None,
+        activation=None,
         ):
         # Set the model name
         self.name = name
         self.verbosity = 1 if verbose else 0
 
-        self.kernel_width = kernel_width
-        self.head_width = head_width
-        self.activation = "relu"
+        self.kernel_width = kernel_width or 1
+        self.head_width = head_width or 1
+        self.activation = activation or 'relu'
         self.optimizer = tf.optimizers.Adam()
         self.loss = tf.losses.MeanSquaredError()
-        self.dropout_rate = dropout_rate
+        self.dropout_rate = dropout_rate or 0
+        self.paitence = paitence or 5
 
         self.metrics = [
             tf.keras.metrics.RootMeanSquaredError(),
@@ -53,7 +55,7 @@ class Model():
         if paitence: self.callbacks.append(tf.keras.callbacks.EarlyStopping(
             monitor='val_root_mean_squared_error',
             restore_best_weights=True,
-            patience=paitence,
+            patience=self.paitence,
             verbose=self.verbosity
         ))
 
@@ -138,28 +140,35 @@ class Model():
 
 class NVidia(Model):
     def __init__(self, **kwargs):
-        super().__init__("Nvidia", **kwargs)
+        super().__init__("Nvidia", activation=kwargs.get('activation', "elu") or "elu", **kwargs)
 
     def specify_model(self):
         i = tf.keras.Input(shape=(224, 224, 3))
-        l = tf.keras.layers.Resizing(240, 240)(i)
-        l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2), activation="relu")(l)
-        l = tf.keras.layers.Conv2D(36, (5, 5), strides=(1, 1), activation="relu")(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
-        l = tf.keras.layers.Conv2D(48, (5, 5), strides=(1, 1), activation="relu")(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
-        l = tf.keras.layers.Conv2D(64, (5, 5), strides=(1, 1), activation="relu")(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
-        l = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1), activation="relu")(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
-        l = tf.keras.layers.Conv2D(96, (3, 3), strides=(1, 1), activation="relu")(l)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(l)
+        l = tf.keras.layers.BatchNormalization()(i)
+        l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Conv2D(36, (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Conv2D(48, (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.MaxPool2D((2, 2))(l)
+        l = tf.keras.layers.BatchNormalization()(i)
+        l = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.MaxPool2D((2, 2))(l)
+
         l = tf.keras.layers.Flatten()(l)
-        l = tf.keras.layers.Dense(1164, activation="relu")(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.Dense(64, activation="relu")(l)
+        
+        l = tf.keras.layers.Dense(128)(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Dropout(0.25)(l)
+        l = tf.keras.layers.Dense(64)(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
         o = tf.keras.layers.Dense(2)(l)
         return i, o
+
 
 class NVidiaBatchnorm(Model):
     def __init__(self, **kwargs):

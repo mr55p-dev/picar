@@ -53,6 +53,8 @@ def train_model(args):
     # tf.debugging.set_log_device_placement(True) # Enable device placement debug messages
     gpus = tf.config.list_logical_devices('GPU')
     strategy = tf.distribute.MirroredStrategy(gpus)
+    if args.gpu:
+        gpus = [gpus[args.gpu]]
 
     printf("Configuring data pipeline... ", end="")
     Dataset.n_train = args.train
@@ -73,6 +75,7 @@ def train_model(args):
             kernel_width=args.kernel_width,
             head_width=args.network_width,
             dropout_rate=args.dropout,
+            activation=args.activation,
         )
 
         # Change these properties also in scope if they are defined

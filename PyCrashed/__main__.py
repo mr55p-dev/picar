@@ -74,6 +74,11 @@ train_command.add_argument(
     type=int, default=5
 )
 train_command.add_argument(
+    "--gpu", 
+    help="Which gpu to use indexed at 0", 
+    type=int, default=None
+)
+train_command.add_argument(
     "-q", "--silent", 
     help="Hide model pregress", default=True, 
     action="store_false", dest="verbose"

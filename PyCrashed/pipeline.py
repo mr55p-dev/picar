@@ -119,6 +119,8 @@ class Dataset:
             return build(f_val)
         elif mode == "test":
             return build(f_test)
+        else:
+            raise ValueError("invalid mode")
 
     @staticmethod
     def load_test():
