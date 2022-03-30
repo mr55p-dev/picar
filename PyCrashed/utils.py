@@ -82,6 +82,8 @@ def train_model(args):
 
         # Call model.compile()
         model.build()
+
+        if args.restore: model.restore()
     printf("Done!")
 
     fmt = lambda k: k.replace('_', ' ').title()

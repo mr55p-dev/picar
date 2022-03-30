@@ -134,7 +134,7 @@ class Model():
     def restore(self, path = None) -> None:
         if not path:
             path = Path(f"products/{self.name}/checkpoint")
-        self.model.load_weights(path)
+        self.model = tf.keras.models.load_model(path)
 
 class NVidia(Model):
     def __init__(self, **kwargs):
@@ -169,23 +169,47 @@ class NVidiaBatchnorm(Model):
         i = tf.keras.Input(shape=(224, 224, 3))
         l = tf.keras.layers.RandomContrast(0.2)(i)
 
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (7, 7), activation=self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (7, 7), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 32), (3, 3), activation=self.activation)(l)
         l = tf.keras.layers.MaxPool2D((2, 2))(l)
         l = tf.keras.layers.BatchNormalization()(l)
 
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (7, 7), activation=self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (7, 7), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (3, 3), activation=self.activation)(l)
         l = tf.keras.layers.MaxPool2D((2, 2))(l)
         l = tf.keras.layers.BatchNormalization()(l)
 
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (5, 5), activation=self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (5, 5), activation=self.activation)(l)
-        l = tf.keras.layers.MaxPool2D((2, 2))(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), activation=self.activation)(l)
         l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.MaxPool2D((2, 2))(l)
 
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (5, 5), activation=self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (5, 5), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (3, 3), activation=self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(self.kernel_width * 80), (3, 3), activation=self.activation)(l)
         l = tf.keras.layers.BatchNormalization()(l)
 
         l = tf.keras.layers.Conv2D(int(self.kernel_width * 96), (3, 3), activation=self.activation)(l)
@@ -220,9 +244,9 @@ class ResNetPT(Model):
         }
 
     def specify_model(self):
-        base_model = tf.keras.applications.ResNet50V2(
+        base_model = tf.keras.applications.ResNet152V2(
             include_top=False,
-            weights="imagenet",
+            weights=None,
             input_shape=(224, 224, 3),
             pooling="avg",
         )
@@ -243,7 +267,7 @@ class ResNetPT(Model):
         left = tf.keras.layers.Dense(1, name="angle")(left)
 
         right = tf.keras.layers.Dense(int(self.head_width * 64), activation=self.activation)(l)
-        right   = tf.keras.layers.Dense(1, name="speed")(right)
+        right = tf.keras.layers.Dense(1, name="speed")(right)
         return i, (left, right)
 
     

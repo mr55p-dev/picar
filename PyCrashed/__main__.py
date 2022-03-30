@@ -34,6 +34,11 @@ train_command.add_argument(
     type=float, default=.25
 )
 train_command.add_argument(
+    "--restore", 
+    help="Restore the last saved checkpoint for this model", 
+    default=False, action="store_true"
+)
+train_command.add_argument(
     "-a", "--activation", 
     help="Activation funciton (default is relu)", 
     type=str, default=None, 
