@@ -3,10 +3,11 @@ from PyCrashed.pipeline import Dataset
 # %%
 ds = Dataset.load("train")
 # %%
-x = next(iter(ds.take(1)))
+len(list(ds))
 
 # %%
-i = x[0]
+ds2 = Dataset.load("val")
+len(list(ds2))
 # %%
 i = i[0, :, :, :]
 # %%
