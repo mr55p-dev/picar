@@ -140,7 +140,8 @@ class Model():
 
 class NVidia(Model):
     def __init__(self, **kwargs):
-        super().__init__("Nvidia", activation=kwargs.get('activation', "elu") or "elu", **kwargs)
+        kwargs["activation"] = kwargs.get('activation', "elu")
+        super().__init__("Nvidia", **kwargs)
 
     def specify_model(self):
         i = tf.keras.Input(shape=(224, 224, 3))
@@ -152,7 +153,7 @@ class NVidia(Model):
         l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (5, 5), strides=(2, 2))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         l = tf.keras.layers.MaxPool2D((2, 2))(l)
-        l = tf.keras.layers.BatchNormalization()(i)
+        l = tf.keras.layers.BatchNormalization()(l)
         l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(l)
@@ -160,7 +161,7 @@ class NVidia(Model):
         l = tf.keras.layers.MaxPool2D((2, 2))(l)
 
         l = tf.keras.layers.Flatten()(l)
-        
+
         l = tf.keras.layers.Dense(128)(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         l = tf.keras.layers.Dropout(0.25)(l)

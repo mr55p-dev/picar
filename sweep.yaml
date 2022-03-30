@@ -1,0 +1,37 @@
+program: PyCrashed
+command:
+  - ${env}
+  - ${interpreter}
+  - "-m"
+  - ${program}
+  - "train"
+  - "--silent"
+  - ${args}
+method: bayes
+metric:
+  goal: minimize
+  name: val_loss
+parameters:
+  model:
+    values: ["nvidia_batchnorm", "imagenet"]
+  epochs:
+    value: 100
+  dropout:
+    values: [0, 0.25, 0.4]
+  batch:
+    values: [64, 128, 256, 512]
+  activation:
+    value: ["relu", "leaky_relu", "elu"]
+  optimizer:
+    values: ["adam", "adamax", "Nadam"]
+  kernel-width:
+    values: [0.5, 1, 2]
+  network-width:
+    values: [0.5, 1, 2]
+  paitence:
+    value: 8
+early_terminate:
+  type: hyperband
+  s: 2
+  eta: 3
+  max_iter: 27
