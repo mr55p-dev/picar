@@ -1,4 +1,5 @@
 from pathlib import Path
+import pathlib
 from PyCrashed.models import NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, ResNetPT, EfficientNetPT, Model
 from PyCrashed.pipeline import Dataset
 
@@ -104,7 +105,15 @@ def predict(args):
     printf("Done!")
     printf("Loading dataset... ", end="")
     # Load the correct dataset
-    ds = Dataset.load_test()
+    prediction_paths = [
+        str(f)
+        for f in pathlib.Path("data/test_data/test_data/").glob("*.png")
+        if f.stat().st_size > 0
+    ]
+
+
+
+
     printf("Done!")
 
     # Perform inference

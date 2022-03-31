@@ -3,7 +3,6 @@ import os
 from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
-from re import I
 from typing import Tuple
 
 import tensorflow as tf
@@ -39,21 +38,13 @@ class Model():
             tf.keras.metrics.RootMeanSquaredError(),
             tf.keras.metrics.KLDivergence()
         ]
-        self.callbacks = []
-
-        if use_wandb: self.callbacks.append(WandbCallback())
-        now = datetime.now()
-        log_dir = now.strftime(f"products/{self.name}/tb_logs/%m-%d/%H:%M:%S/")
-        self.callbacks.append(tf.keras.callbacks.TensorBoard(
-            log_dir=log_dir,
-            histogram_freq=1
-        ))
-        self.callbacks.append(tf.keras.callbacks.ModelCheckpoint(
+        self.callbacks = [tf.keras.callbacks.ModelCheckpoint(
             f"products/{self.name}/checkpoint",
             monitor='val_loss'
-        ))
+        )]
+        if use_wandb: self.callbacks.append(WandbCallback())
         if paitence: self.callbacks.append(tf.keras.callbacks.EarlyStopping(
-            monitor='val_root_mean_squared_error',
+            monitor='val_loss',
             restore_best_weights=True,
             patience=self.paitence,
             verbose=self.verbosity
@@ -81,8 +72,8 @@ class Model():
             validation_data: tf.data.Dataset = None,
             n_epochs: int = 10
         ):
-        # if not data:
-        #     data = Dataset.load("train")
+        if not data:
+            data = Dataset.load("train")
         if not validation_data:
             validation_data = Dataset.load("val")
 
