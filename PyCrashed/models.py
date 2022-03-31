@@ -230,7 +230,7 @@ class NVidiaSplit(Model):
         r = tf.keras.layers.Dropout(0.25)(r)
         r = tf.keras.layers.Dense(int(self.network_width * 64))(r)
         r = tf.keras.layers.Activation(self.activation)(r)
-        o_r = tf.keras.layers.Dense(2, name="speed", activation="softmax")(r)
+        o_r = tf.keras.layers.Dense(1, name="speed")(r)
         return i, (o_l, o_r)
 
 class ResNetPT(Model):
