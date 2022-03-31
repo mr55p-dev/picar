@@ -67,12 +67,13 @@ class Model():
     def build(self):
         # Builds a model according to the inputs and outputs specified
         i, o = self.specify_model()
-        self.model = tf.keras.Model(inputs=i, outputs=o, name="nvidia")
+        self.model = tf.keras.Model(inputs=i, outputs=o, name=self.name)
         self.model.compile(
             optimizer=self.optimizer,
             loss=self.loss,
             metrics=self.metrics,
         )
+        self.is_split = isinstance(o, (list, tuple))
         return self.model
 
     def fit(self,
@@ -80,8 +81,8 @@ class Model():
             validation_data: tf.data.Dataset = None,
             n_epochs: int = 10
         ):
-        if not data:
-            data = Dataset.load("train")
+        # if not data:
+        #     data = Dataset.load("train")
         if not validation_data:
             validation_data = Dataset.load("val")
 
@@ -175,8 +176,8 @@ class NVidiaSplit(Model):
         kwargs["activation"] = kwargs.get('activation', "elu")
         super().__init__("Nvidia_split", **kwargs)
         self.loss = {
-            "angle": tf.losses.MeanSquaredError(),
-            "speed": tf.losses.BinaryCrossentropy()
+            "angle": tf.keras.losses.MeanSquaredError(),
+            "speed": tf.keras.losses.BinaryCrossentropy()
         }
         self.metrics = {
             "angle": tf.keras.metrics.RootMeanSquaredError(),

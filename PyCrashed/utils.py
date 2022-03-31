@@ -54,14 +54,6 @@ def train_model(args):
     gpus = tf.config.list_logical_devices('GPU')
     strategy = tf.distribute.MirroredStrategy(gpus)
 
-    printf("Configuring data pipeline... ", end="")
-    Dataset.n_train = args.train
-    Dataset.n_val = args.val
-    Dataset.n_test = 1 - (args.train + args.val)
-    Dataset.batch_size = strategy.num_replicas_in_sync * args.batch
-    ds = Dataset.load("train")
-    printf("Done!")
-
     # Compile the model within the scope
     printf("Building model... ", end="")
     printf("Instantiating model... ", end="")
@@ -86,9 +78,14 @@ def train_model(args):
         if args.restore: model.restore()
     printf("Done!")
 
-    fmt = lambda k: k.replace('_', ' ').title()
-    printf("Executing model using the following dataset configuration")
-    # printf(tabulate({fmt(k): [v] for k, v in Dataset._props.items()}, headers="keys", tablefmt="fancy_grid"))
+    printf("Configuring data pipeline... ", end="")
+    Dataset.n_train = args.train
+    Dataset.n_val = args.val
+    Dataset.n_test = 1 - (args.train + args.val)
+    Dataset.batch_size = strategy.num_replicas_in_sync * args.batch
+    Dataset.labelled_outputs = model.is_split
+    ds = Dataset.load("train")
+    printf("Done!")
 
     printf("Training model")
     model.fit(n_epochs=args.epochs, data=ds)

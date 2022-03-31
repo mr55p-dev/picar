@@ -32,11 +32,19 @@ def get_set(valid_l, prob, prop, n):
     take_items = lambda c: valid_l[valid_l["motion_class"] == c].sample(int(n * prob * prop.loc[c]))
     return pd.concat(map(take_items, valid_l["motion_class"].unique().squeeze()))
 
+def process_out(img, label, weights):
+    l = {
+        "angle": label[0],
+        "speed": label[1]
+    }
+    return img, l, tf.reshape(weights, (1, -1))
+
 class Dataset:
     n_train = 0.65
     n_val = 0.25
     n_test = 0.1
     batch_size = 64
+    labelled_outputs = False
 
     # Define the image paths
     labels = assign_weights(pd.read_csv("data/training_norm.csv"))
@@ -107,11 +115,14 @@ class Dataset:
         f_test  = list(filter(lambda x: x in idx_test, Dataset.paths))
 
         def build(files):
-            return tf.data.Dataset.list_files(files)\
-                .map(tf_fetch_data, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)\
-                .batch(Dataset.batch_size)\
-                .cache()\
-                .prefetch(tf.data.AUTOTUNE)
+            ds = tf.data.Dataset.from_tensor_slices(files)
+            ds = ds.map(tf_fetch_data, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)
+            if Dataset.labelled_outputs:
+                ds = ds.map(process_out, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)
+            ds = ds.batch(Dataset.batch_size)
+            ds = ds.cache()
+            ds = ds.prefetch(tf.data.AUTOTUNE)
+            return ds
 
         if mode == "train":
             return build(f_train)
@@ -132,4 +143,6 @@ class Dataset:
 
         ds = tf.data.Dataset.list_files(Dataset.prediction_paths)
         ds = ds.map(tf_fetch_data, deterministic=True, num_parallel_calls=tf.data.AUTOTUNE)
+        if Dataset.labelled_outputs:
+            ds = ds.map(process_out, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)
         return ds.batch(1).cache().prefetch(tf.data.AUTOTUNE)
