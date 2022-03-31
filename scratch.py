@@ -4,9 +4,6 @@ Dataset.batch_size=4
 Dataset.labelled_outputs = True
 ds = Dataset.load("train")
 # %%
-lab = next(iter(ds.take(1)))[1]
-# %%
-lab
 # %%
 Dataset.labelled_outputs
 # %%
@@ -26,17 +23,7 @@ import numpy as np
 # %%
 mse = tf.keras.losses.MeanSquaredError()
 # %%
-y = np.array([1, 0, 0, 1], dtype=float)
-y_pred = np.array([1, 1, 0, 0], dtype=float)
-w = np.array([0.8, 2, 0.2, 0.2]).reshape(1, -1)
-# %%
-w.shape
-# %%
-y = tf.convert_to_tensor(y)
-y_pred = tf.convert_to_tensor(y_pred)
-w = tf.convert_to_tensor(w)
-# %%
-mse(y, y_pred)
+mse(ds, ds)
 # %%
 mse(lab["angle"], lab["angle"], [0.8, 2, 0.2, 0.2]).numpy()
 # %%

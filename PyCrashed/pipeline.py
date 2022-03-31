@@ -141,8 +141,8 @@ class Dataset:
                 Tout=tf.float32
         )
 
-        ds = tf.data.Dataset.list_files(Dataset.prediction_paths)
-        ds = ds.map(tf_fetch_data, deterministic=True, num_parallel_calls=tf.data.AUTOTUNE)
+        ds = tf.data.Dataset.from_tensor_slices(Dataset.prediction_paths)
+        ds = ds.map(tf_fetch_data)
         if Dataset.labelled_outputs:
-            ds = ds.map(process_out, num_parallel_calls=tf.data.AUTOTUNE)
-        return ds.batch(1).cache().prefetch(tf.data.AUTOTUNE)
+            ds = ds.map(process_out)
+        return ds.cache().prefetch(tf.data.AUTOTUNE)
