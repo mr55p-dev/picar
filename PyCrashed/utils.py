@@ -12,7 +12,8 @@ from tabulate import tabulate
 def normal_to_raw(x: np.array) -> np.array:
     angle = np.rint((80 * x[0]) + 50)
     angle = 5 * np.rint(angle / 5)
-    speed = 35 * np.rint(x[1]).astype(int)
+    speed = max(0, min(1, x[1]))
+    speed = 35 * np.rint(speed).astype(int)
     return np.array([angle, speed])
 
 def raw_to_normal(x: np.array) -> np.array:
@@ -114,6 +115,8 @@ def predict(args):
 
     # # Adjust values
     printf("Adjusting values... ", end="")
+    if isinstance(predictions, tuple):
+        predictions = np.hstack((predictions[0].reshape(-1, 1), predictions[1].reshape(-1, 1)))
     predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
     predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
     printf("Done!")

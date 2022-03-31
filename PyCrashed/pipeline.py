@@ -54,11 +54,11 @@ class Dataset:
             for f in training_path.glob("*.png")
             if f.stat().st_size > 0
     ]
-    prediction_paths = [
-            str(f)
-            for f in pathlib.Path("data/test_data/test_data/").glob("*.png")
-            if f.stat().st_size > 0
-    ]
+    _pred_paths = sorted(
+        list(
+            pathlib.Path("data/test_data/test_data/").glob("*.png")
+            ), key=lambda x: int(x.name[:-4]))
+    prediction_paths = [str(f) for f in _pred_paths]
 
     @staticmethod
     def _tvt_split():
@@ -142,7 +142,8 @@ class Dataset:
         )
 
         ds = tf.data.Dataset.from_tensor_slices(Dataset.prediction_paths)
-        ds = ds.map(tf_fetch_data)
-        if Dataset.labelled_outputs:
-            ds = ds.map(process_out)
-        return ds.cache().prefetch(tf.data.AUTOTUNE)
+        ds = ds.map(tf_fetch_data).batch(Dataset.batch_size)
+        # ds = ds.batch(Dataset.batch_size)
+        ds = ds.cache()
+        ds = ds.prefetch(tf.data.AUTOTUNE)
+        return ds

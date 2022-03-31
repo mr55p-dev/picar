@@ -1,31 +1,21 @@
 # %%
-from PyCrashed.pipeline import Dataset
-Dataset.batch_size=4
-Dataset.labelled_outputs = True
-ds = Dataset.load("train")
-# %%
-# %%
-Dataset.labelled_outputs
-# %%
-from PyCrashed.models import NVidiaSplit
-x = NVidiaSplit(use_wandb=False)
-x.build()
-x.is_split
-# %%
-
-from PyCrashed.models import NVidia
-x = NVidia(use_wandb=False)
-x.build()
-x.is_split
-# %%
 import tensorflow as tf
 import numpy as np
+from PyCrashed.pipeline import Dataset
 # %%
-mse = tf.keras.losses.MeanSquaredError()
+Dataset.batch_size=4
+Dataset.labelled_outputs = True
+ds = Dataset.load_test()
 # %%
-mse(ds, ds)
+model = tf.keras.models.load_model("products/Nvidia_split/model")
 # %%
-mse(lab["angle"], lab["angle"], [0.8, 2, 0.2, 0.2]).numpy()
+predictions = model.predict(ds)
 # %%
-lab["angle"].reshape
+angle, speed = predictions
+
+# %%
+# # Adjust values
+predictions = np.hstack((angle.reshape(-1, 1), speed.reshape(-1, 1)))
+# %%
+predictions
 # %%
