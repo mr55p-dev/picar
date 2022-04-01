@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import numpy as np
 
+
 def assign_weights(labels):
     def classify_instance(instance):
         if instance[2] == 0: return 0 # Stopped
@@ -59,6 +60,11 @@ class Dataset:
             pathlib.Path("data/test_data/test_data/").glob("*.png")
             ), key=lambda x: int(x.name[:-4]))
     prediction_paths = [str(f) for f in _pred_paths]
+    _val_paths = sorted(
+        list(
+            pathlib.Path("data/validation_data/").glob("*.png")
+            ), key=lambda x: int(x.name[:-4]))
+    val_paths = [str(f) for f in _pred_paths]
 
     @staticmethod
     def _tvt_split():
@@ -148,3 +154,23 @@ class Dataset:
         ds = ds.cache()
         ds = ds.prefetch(tf.data.AUTOTUNE)
         return ds
+
+    @staticmethod
+    def load_val():
+        tf_fetch_data = lambda x: tf.py_function(
+                func=Dataset._load_image,
+                inp=[x],
+                Tout=tf.float32
+        )
+
+        ds = tf.data.Dataset.from_tensor_slices(Dataset.val_paths)
+        ds = ds.map(tf_fetch_data).batch(Dataset.batch_size)
+        # ds = ds.batch(Dataset.batch_size)
+        ds = ds.cache()
+        ds = ds.prefetch(tf.data.AUTOTUNE)
+
+        # Load labels
+        labels = Dataset.labels
+        actual_labels = labels[labels["image_id"] < 1021][["angle", "speed"]].to_numpy()
+
+        return ds, actual_labels

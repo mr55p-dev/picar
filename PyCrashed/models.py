@@ -130,9 +130,18 @@ class Model():
             path = Path(f"products/{self.name}/checkpoint")
         self.model = tf.keras.models.load_model(path)
 
+class Hell(Model):
+    def __init__(self, **kwargs):
+        super().__init__("Hell", **kwargs)
+
+    def specify_model(self):
+        i = tf.keras.Input(shape=(224, 224, 3))
+        l = tf.keras.layers.Flatten()(i)
+        o = tf.keras.layers.Dense(2)(l)
+        return i, o
+
 class NVidia(Model):
     def __init__(self, **kwargs):
-        kwargs["activation"] = kwargs.get('activation', "elu")
         super().__init__("Nvidia", **kwargs)
 
     def specify_model(self):

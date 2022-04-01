@@ -40,10 +40,10 @@ def create_item():
         yield img, label
 
 # %% Define the datasets used
-N_TRAIN = int(.6 * n_files)
+N_TRAIN = int(.75 * n_files)
 N_VAL   = int(.2 * n_files)
-N_TEST  = int(.2 * n_files)
-BATCH = 64
+N_TEST  = int(.05 * n_files)
+BATCH = 128
 train_dataset = tf.data.Dataset.from_generator(
     create_item,
     output_types=(tf.float32, tf.float64)
@@ -80,10 +80,10 @@ layer = tf.keras.layers.MaxPool2D((2, 2))(layer)
 
 layer = tf.keras.layers.Flatten()(layer)
 
-layer = tf.keras.layers.Dense(128)(layer)
+layer = tf.keras.layers.Dense(256)(layer)
 layer = tf.keras.layers.Activation("relu")(layer)
-layer = tf.keras.layers.Dropout(0.25)(layer)
-layer = tf.keras.layers.Dense(64)(layer)
+layer = tf.keras.layers.Dropout(0.45)(layer)
+layer = tf.keras.layers.Dense(128)(layer)
 layer = tf.keras.layers.Activation("relu")(layer)
 outputs = tf.keras.layers.Dense(2)(layer)
 
@@ -94,7 +94,7 @@ model.compile(
     metrics=[tf.keras.metrics.RootMeanSquaredError()]
 )
 # %% Fit and evaluate the model 
-metrics = model.fit(train_dataset, epochs=25, validation_data=val_dataset)
+metrics = model.fit(train_dataset, epochs=75, validation_data=val_dataset)
 test_error = model.evaluate(test_dataset)
 # %%
 model.save("./RetryPy/model/")
@@ -109,3 +109,46 @@ blind_pre = model.predict(blind_img)
 loss = tf.keras.losses.MeanSquaredError()
 error_single_dev = loss(blind_pre, blind_lab)
 # %% Create actual predictions
+kaggle_test_files = train_files = [
+    i for i in Path("data/test_data/test_data").glob("*.png")
+    if i.lstat().st_size > 0
+]
+kaggle_test_files = sorted(kaggle_test_files, key=get_id)
+
+def create_kaggle_item():
+    for path in kaggle_test_files:
+        img = load_image(path)
+        img_id = get_id(path)
+        yield img, img_id
+# %%
+
+kaggle_dataset = tf.data.Dataset.from_generator(
+    create_kaggle_item,
+    output_types=(tf.float32, tf.int16)
+).map(lambda img, _: img)\
+.batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
+# %% Run predictions
+predictions = model.predict(kaggle_dataset)
+# %% Very quick test of the nth item
+first = next(kaggle_dataset.take(1).as_numpy_iterator())[0:1, :, :, :]
+first_pred_synthetic = model.predict(first)
+first_pred_synthetic = first_pred_synthetic.astype('float16')
+first_pred_actual = predictions[0:1, :]
+first_pred_actual = first_pred_actual.astype('float16')
+assert (first_pred_synthetic == first_pred_actual).all()
+# %% If that passes, write the data!
+predictions = tf.clip_by_value(predictions, 0, 1)
+predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
+predictions = pd.DataFrame(predictions, index=pd.RangeIndex(1, 1021))
+predictions.to_csv("RetryPy/predictions.csv")
+# %%
+"""
+ELLIS' BIG LIST OF TODOS!
+- Port the pipeline archirecture from generators into tensor slices
+- Keep the current generator based testing
+- Bring in argparse
+- Come up with a new model creation methodology (factory perhaps)
+- Implement the distributed strategy again
+- 
+"""
+# %%

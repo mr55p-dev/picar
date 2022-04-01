@@ -1,5 +1,5 @@
 from pathlib import Path
-from PyCrashed.models import NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, ResNetPT, EfficientNetPT, Model
+from PyCrashed.models import Hell, NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, ResNetPT, EfficientNetPT, Model
 from PyCrashed.pipeline import Dataset
 
 import numpy as np
@@ -36,6 +36,7 @@ models = {
     "efficientnet": EfficientNetPT,
     "resnet": ResNetPT,
     "multiheaded": MultiHeaded,
+    "hell": Hell,
 }
 
 def list_models(args):
@@ -109,7 +110,7 @@ def predict(args):
     printf("Done!")
     printf("Loading dataset... ", end="")
     # Load the correct dataset
-    ds = Dataset.load_test()
+    ds, labels = Dataset.load_val()
     printf("Done!")
 
     # Perform inference
@@ -125,6 +126,10 @@ def predict(args):
     predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
     printf("Done!")
 
+    mse = tf.keras.losses.MeanSquaredError()
+    error = mse(predictions, labels)
+    print(error)
+
     # Write to csv
     printf("Writing output... ", end="")
     output_path = args.output or Path.joinpath(model_path.parent, "predicions.csv")
@@ -136,3 +141,42 @@ def predict(args):
     df["speed"] = df["speed"].round(0).astype(int)
     df.to_csv(output_path)
     printf("Done!")
+
+# def predict(args):
+#     printf = get_printf(args.verbose)
+
+#     # Load a model
+#     printf("Loading model... ", end="")
+#     model_path = Path(args.path)
+#     model = tf.keras.models.load_model(model_path)
+
+#     printf("Done!")
+#     printf("Loading dataset... ", end="")
+#     # Load the correct dataset
+#     ds = Dataset.load_test()
+#     printf("Done!")
+
+#     # Perform inference
+#     printf("Performing inference... ", end="")
+#     predictions = model.predict(ds)
+#     printf("Done!")
+
+#     # # Adjust values
+#     printf("Adjusting values... ", end="")
+#     if isinstance(predictions, tuple):
+#         predictions = np.hstack(predictions)
+#     predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
+#     predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
+#     printf("Done!")
+
+#     # Write to csv
+#     printf("Writing output... ", end="")
+#     output_path = args.output or Path.joinpath(model_path.parent, "predicions.csv")
+#     df = pd.DataFrame(
+#         predictions,
+#         columns=["angle", "speed"],
+#         index=pd.RangeIndex(1, predictions.shape[0] + 1, name="image_id")
+#     )
+#     df["speed"] = df["speed"].round(0).astype(int)
+#     df.to_csv(output_path)
+#     printf("Done!")

@@ -41,10 +41,6 @@ for a, b in zip(predictions_arr, batched_predictions_arr):
 all(equality)
 # %%
 batched_predictions
-
-# %%
-# # Adjust values
-predictions = np.hstack((angle.reshape(-1, 1), speed.reshape(-1, 1)))
 # %%
 predictions
 # %%
