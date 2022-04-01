@@ -139,7 +139,13 @@ assert (first_pred_synthetic == first_pred_actual).all()
 # %% If that passes, write the data!
 predictions = tf.clip_by_value(predictions, 0, 1)
 predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
-predictions = pd.DataFrame(predictions, index=pd.RangeIndex(1, 1021))
+predictions = pd.DataFrame(
+    predictions, 
+    index=pd.RangeIndex(1, 1021),
+    columns=["angle", "speed"]
+)
+predictions.index.name = "image_id"
+predictions["speed"] = predictions["speed"].astype("int")
 predictions.to_csv("RetryPy/predictions.csv")
 # %%
 """
@@ -152,3 +158,31 @@ ELLIS' BIG LIST OF TODOS!
 - 
 """
 # %%
+def create_data(
+        n_train: float, 
+        n_val: float, 
+        batch_size: int, 
+        weighted: bool,
+        multiheaded: bool    
+    ):
+    ...
+
+def create_assets():
+    # Returns a compiled model and its training and validation data
+    # Model should be named
+    ...
+
+def train_model(model, train, val, epochs, callbacks):
+    # Trains the specified model (should accept argparse args)
+    model.fit(
+        train, 
+        epochs=epochs,
+        validation_data=val,
+        callbacks=callbacks
+    )
+    model.save(f"RetryPy/models/{model.name}/")
+    return model
+
+def predict():
+    # Uses the model to make predictions
+    ...
