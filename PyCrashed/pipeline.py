@@ -78,6 +78,7 @@ class Dataset:
 
     @staticmethod
     def _load_image(img_path: tf.Tensor):
+        # print(img_path)
         img_decoded = tf.image.decode_image(
             tf.io.read_file(img_path), channels=3, dtype=tf.float32 # Read the image as float32
         )

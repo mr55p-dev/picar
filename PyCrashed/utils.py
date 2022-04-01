@@ -10,15 +10,19 @@ import wandb
 from tabulate import tabulate
 
 def normal_to_raw(x: np.array) -> np.array:
-    angle = np.rint((80 * x[0]) + 50)
-    angle = 5 * np.rint(angle / 5)
-    speed = max(0, min(1, x[1]))
+    angle = x[0]
+    # angle = np.rint((80 * angle) + 50)
+    # angle = 5 * np.rint(angle / 5)
+    speed = x[1]
+    speed = max(0, min(1, speed))
     speed = 35 * np.rint(speed).astype(int)
     return np.array([angle, speed])
 
 def raw_to_normal(x: np.array) -> np.array:
-    angle = (x[0] - 50) / 80
-    speed = x[1] / 35
+    angle = x[0]
+    # angle = (angle - 50) / 80
+    speed = x[1]
+    speed = speed / 35
     return np.array([angle, speed])
 
 def get_printf(verbose):
@@ -116,7 +120,7 @@ def predict(args):
     # # Adjust values
     printf("Adjusting values... ", end="")
     if isinstance(predictions, tuple):
-        predictions = np.hstack((predictions[0].reshape(-1, 1), predictions[1].reshape(-1, 1)))
+        predictions = np.hstack(predictions)
     predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
     predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
     printf("Done!")
