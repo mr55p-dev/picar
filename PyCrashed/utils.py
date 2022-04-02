@@ -57,8 +57,7 @@ def train_model(args):
 
     # Find the device GPUs and make them available for the mirrored strategy
     # tf.debugging.set_log_device_placement(True) # Enable device placement debug messages
-    gpus = tf.config.list_logical_devices('GPU')
-    strategy = tf.distribute.MirroredStrategy(gpus)
+w
 
     # Compile the model within the scope
     printf("Building model... ", end="")

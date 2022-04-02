@@ -157,6 +157,81 @@ ELLIS' BIG LIST OF TODOS!
 - Implement the distributed strategy again
 - 
 """
+# %% Create the data in a tensor_slices way
+import os
+N_TRAIN = int(.75 * n_files)
+N_VAL   = int(.2 * n_files)
+N_TEST  = int(.05 * n_files)
+BATCH = 128
+gen_dataset = tf.data.Dataset.from_generator(
+    create_item,
+    output_types=(tf.float32, tf.float64)
+).take(N_TRAIN).batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
+
+def load_image_tensor(path: Path):
+    img = tf.io.read_file(path)
+    img = tf.image.decode_png(img, channels=3)
+    img = tf.image.resize(img, (224, 224))
+    return img
+
+def get_id_tensor(path):
+    img_id = tf.strings.split(path, os.sep)
+    img_id = img_id[-1] # Get the last path component
+    img_id = tf.strings.regex_replace(img_id, ".png", "")
+    img_id = int(tf.strings.to_number(img_id))
+    return img_id
+
+def get_angle_speed_tensor(img_id: int):
+    label = labels[labels["image_id"] == img_id]
+    label = label[["angle", "speed"]]
+    label = label.to_numpy()
+    label = label.reshape(-1)
+    label = tf.convert_to_tensor(label)
+    return label
+
+def create_tensor(path):
+    img = load_image_tensor(path)
+    img_id = get_id_tensor(path)
+    label = get_angle_speed_tensor(img_id)
+    return img, label
+
+create_tensor_fn = lambda p: tf.py_function(
+    create_tensor,
+    inp=[p],
+    Tout=(tf.float32, tf.float64)
+)
+
+
+str_train_files = [str(i) for i in train_files]
+tensor_train_dataset = tf.data.Dataset.from_tensor_slices(str_train_files)
+tensor_train_dataset = tensor_train_dataset.map(create_tensor_fn)\
+    .take(N_TRAIN).batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
+
+"""
+Include the blind data generator in this as well to make sure blind data is
+recovered in the same way!
+"""
+# %%
+it1 = gen_dataset.as_numpy_iterator()
+it2 = tensor_train_dataset.as_numpy_iterator()
+
+
+# %%
+for i in range(len(str_train_files)//BATCH):
+    print(i, end="\r")
+    ax, ay = next(it1)
+    bx, by = next(it2)
+    assert ((ax == bx).all())
+    assert ((ay == by).all())
+# %%
+
+
+
+
+
+
+
+
 # %%
 def create_data(
         n_train: float, 
