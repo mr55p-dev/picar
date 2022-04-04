@@ -224,13 +224,27 @@ for i in range(len(str_train_files)//BATCH):
     assert ((ax == bx).all())
     assert ((ay == by).all())
 # %%
+# %% Create actual predictions
+tensor_kaggle_test_files = [
+    str(i) for i in Path("data/test_data/test_data").glob("*.png")
+    if i.lstat().st_size > 0
+]
 
+def create_kaggle_image_tensor_fn(path: str):
+    img = tf.io.read_file(path)
+    img = tf.image.decode_png(img, channels=3)
+    img = tf.image.resize(img, (224, 224))
+    return img
 
-
-
-
-
-
+create_kaggle_image_tensor = lambda p: tf.py_function(
+    create_kaggle_image_tensor_fn,
+    inp=[p],
+    Tout=tf.float32
+)
+tensor_kaggle_test_files = sorted(tensor_kaggle_test_files, key=get_id)
+tensor_kaggle_dataset = tf.Data.from_tensor_slices(tensor_kaggle_test_files)
+tensor_kaggle_dataset = tensor_kaggle_dataset.map(create_kaggle_image_tensor)
+tensor_kaggle_dataset = tensor_kaggle_dataset.batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
 
 # %%
 def create_data(
