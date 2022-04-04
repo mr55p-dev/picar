@@ -40,8 +40,8 @@ def create_item():
         yield img, label
 
 # %% Define the datasets used
-N_TRAIN = int(.75 * n_files)
-N_VAL   = int(.2 * n_files)
+N_TRAIN = int(.075 * n_files)
+N_VAL   = int(.02 * n_files)
 N_TEST  = int(.05 * n_files)
 BATCH = 128
 train_dataset = tf.data.Dataset.from_generator(
@@ -57,7 +57,7 @@ val_dataset = tf.data.Dataset.from_generator(
 test_dataset = tf.data.Dataset.from_generator(
     create_item,
     output_types=(tf.float32, tf.float64)
-).skip(N_TRAIN+N_VAL).take(N_TEST).batch(BATCH, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
+).skip(N_TRAIN+N_VAL).take(N_TEST).batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
 # %% Define a model
 # gpus = tf.config.list_logical_devices('GPU')
 # strategy = tf.distribute.MirroredStrategy(gpus)
@@ -93,8 +93,8 @@ model.compile(
     optimizer="adam",
     metrics=[tf.keras.metrics.RootMeanSquaredError()]
 )
-# %% Fit and evaluate the model 
-metrics = model.fit(train_dataset, epochs=75, validation_data=val_dataset)
+# %% Fit and evaluate the model
+metrics = model.fit(train_dataset, epochs=1, validation_data=val_dataset)
 test_error = model.evaluate(test_dataset)
 # %%
 model.save("./RetryPy/model/")
@@ -140,7 +140,7 @@ assert (first_pred_synthetic == first_pred_actual).all()
 predictions = tf.clip_by_value(predictions, 0, 1)
 predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
 predictions = pd.DataFrame(
-    predictions, 
+    predictions,
     index=pd.RangeIndex(1, 1021),
     columns=["angle", "speed"]
 )
@@ -150,109 +150,41 @@ predictions.to_csv("RetryPy/predictions.csv")
 # %%
 """
 ELLIS' BIG LIST OF TODOS!
-- Port the pipeline archirecture from generators into tensor slices
-- Keep the current generator based testing
 - Bring in argparse
 - Come up with a new model creation methodology (factory perhaps)
 - Implement the distributed strategy again
-- 
-"""
-# %% Create the data in a tensor_slices way
-import os
-N_TRAIN = int(.75 * n_files)
-N_VAL   = int(.2 * n_files)
-N_TEST  = int(.05 * n_files)
-BATCH = 128
-gen_dataset = tf.data.Dataset.from_generator(
-    create_item,
-    output_types=(tf.float32, tf.float64)
-).take(N_TRAIN).batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
-
-def load_image_tensor(path: Path):
-    img = tf.io.read_file(path)
-    img = tf.image.decode_png(img, channels=3)
-    img = tf.image.resize(img, (224, 224))
-    return img
-
-def get_id_tensor(path):
-    img_id = tf.strings.split(path, os.sep)
-    img_id = img_id[-1] # Get the last path component
-    img_id = tf.strings.regex_replace(img_id, ".png", "")
-    img_id = int(tf.strings.to_number(img_id))
-    return img_id
-
-def get_angle_speed_tensor(img_id: int):
-    label = labels[labels["image_id"] == img_id]
-    label = label[["angle", "speed"]]
-    label = label.to_numpy()
-    label = label.reshape(-1)
-    label = tf.convert_to_tensor(label)
-    return label
-
-def create_tensor(path):
-    img = load_image_tensor(path)
-    img_id = get_id_tensor(path)
-    label = get_angle_speed_tensor(img_id)
-    return img, label
-
-create_tensor_fn = lambda p: tf.py_function(
-    create_tensor,
-    inp=[p],
-    Tout=(tf.float32, tf.float64)
-)
-
-
-str_train_files = [str(i) for i in train_files]
-tensor_train_dataset = tf.data.Dataset.from_tensor_slices(str_train_files)
-tensor_train_dataset = tensor_train_dataset.map(create_tensor_fn)\
-    .take(N_TRAIN).batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
-
-"""
-Include the blind data generator in this as well to make sure blind data is
-recovered in the same way!
+-
 """
 # %%
 it1 = gen_dataset.as_numpy_iterator()
 it2 = tensor_train_dataset.as_numpy_iterator()
 
-
-# %%
 for i in range(len(str_train_files)//BATCH):
     print(i, end="\r")
-    ax, ay = next(it1)
-    bx, by = next(it2)
+    ax, ay, az = next(it1)
+    bx, by, bz = next(it2)
     assert ((ax == bx).all())
     assert ((ay == by).all())
+    assert ((az == bz).all())
 # %%
-# %% Create actual predictions
-tensor_kaggle_test_files = [
-    str(i) for i in Path("data/test_data/test_data").glob("*.png")
-    if i.lstat().st_size > 0
-]
+from RetryPy.data import load_dataset, load_prediction_data
+train, _ = load_dataset(.75, .2, 1, False, False)
+train_blind = load_prediction_data(1)
 
-def create_kaggle_image_tensor_fn(path: str):
-    img = tf.io.read_file(path)
-    img = tf.image.decode_png(img, channels=3)
-    img = tf.image.resize(img, (224, 224))
-    return img
-
-create_kaggle_image_tensor = lambda p: tf.py_function(
-    create_kaggle_image_tensor_fn,
-    inp=[p],
-    Tout=tf.float32
-)
-tensor_kaggle_test_files = sorted(tensor_kaggle_test_files, key=get_id)
-tensor_kaggle_dataset = tf.Data.from_tensor_slices(tensor_kaggle_test_files)
-tensor_kaggle_dataset = tensor_kaggle_dataset.map(create_kaggle_image_tensor)
-tensor_kaggle_dataset = tensor_kaggle_dataset.batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
-
+it1 = train_blind.as_numpy_iterator()
+it2 = tensor_kaggle_dataset.as_numpy_iterator()
+for i in range(len(str_train_files)//BATCH):
+    print(i, end="\r")
+    ax = next(it1)
+    bx = next(it2)
+    assert ((ax == bx).all())
 # %%
 def create_data(
-        n_train: float, 
-        n_val: float, 
-        batch_size: int, 
+        n_train: float,
+        n_val: float,
+        batch_size: int,
         weighted: bool,
-        multiheaded: bool    
+        multiheaded: bool
     ):
     ...
 
@@ -275,3 +207,4 @@ def train_model(model, train, val, epochs, callbacks):
 def predict():
     # Uses the model to make predictions
     ...
+# %%

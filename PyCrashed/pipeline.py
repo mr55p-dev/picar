@@ -150,7 +150,6 @@ class Dataset:
 
         ds = tf.data.Dataset.from_tensor_slices(Dataset.prediction_paths)
         ds = ds.map(tf_fetch_data).batch(Dataset.batch_size)
-        # ds = ds.batch(Dataset.batch_size)
         ds = ds.cache()
         ds = ds.prefetch(tf.data.AUTOTUNE)
         return ds
