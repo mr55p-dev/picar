@@ -12,6 +12,9 @@
 .vsvode
 wandb/
 
+# Unix nohup
+nohup.out
+
 # tests output
 exploratory-tests/
 
