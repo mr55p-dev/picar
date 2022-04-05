@@ -1,29 +1,12 @@
 from pathlib import Path
-from PyCrashed.models import Hell, NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, ResNetPT, EfficientNetPT, Model
-from PyCrashed.pipeline import Dataset
+from PyCrashed.models import NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, ResNetPT, EfficientNetPT, Model
+from PyCrashed.predict import Data
 
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 
 import wandb
-from tabulate import tabulate
-
-def normal_to_raw(x: np.array) -> np.array:
-    angle = x[0]
-    # angle = np.rint((80 * angle) + 50)
-    # angle = 5 * np.rint(angle / 5)
-    speed = x[1]
-    speed = max(0, min(1, speed))
-    speed = 35 * np.rint(speed).astype(int)
-    return np.array([angle, speed])
-
-def raw_to_normal(x: np.array) -> np.array:
-    angle = x[0]
-    # angle = (angle - 50) / 80
-    speed = x[1]
-    speed = speed / 35
-    return np.array([angle, speed])
 
 def get_printf(verbose):
     return print if verbose else lambda *args, **kwargs: None
@@ -36,7 +19,6 @@ models = {
     "efficientnet": EfficientNetPT,
     "resnet": ResNetPT,
     "multiheaded": MultiHeaded,
-    "hell": Hell,
 }
 
 def list_models(args):
@@ -57,10 +39,10 @@ def train_model(args):
 
     # Find the device GPUs and make them available for the mirrored strategy
     # tf.debugging.set_log_device_placement(True) # Enable device placement debug messages
-w
+    gpus = tf.config.list_logical_devices('GPU')
+    strategy = tf.distribute.MirroredStrategy(gpus)
 
     # Compile the model within the scope
-    printf("Building model... ", end="")
     printf("Instantiating model... ", end="")
     with strategy.scope():
         model: Model = models[args.model](
@@ -84,16 +66,11 @@ w
     printf("Done!")
 
     printf("Configuring data pipeline... ", end="")
-    Dataset.n_train = args.train
-    Dataset.n_val = args.val
-    Dataset.n_test = 1 - (args.train + args.val)
-    Dataset.batch_size = strategy.num_replicas_in_sync * args.batch
-    Dataset.labelled_outputs = model.is_split
-    ds = Dataset.load("train")
+    train_ds, val_ds = Data.training(args.train, args.val, args.batch)
     printf("Done!")
 
     printf("Training model")
-    model.fit(n_epochs=args.epochs, data=ds)
+    model.fit(n_epochs=args.epochs, data=train_ds, validation_data=val_ds)
 
     printf("Saving model")
     model.save()
@@ -102,80 +79,29 @@ def predict(args):
     printf = get_printf(args.verbose)
 
     # Load a model
-    printf("Loading model... ", end="")
     model_path = Path(args.path)
     model = tf.keras.models.load_model(model_path)
 
-    printf("Done!")
-    printf("Loading dataset... ", end="")
     # Load the correct dataset
-    ds, labels = Dataset.load_val()
-    printf("Done!")
+    kaggle_dataset = Data.testing(1)
 
-    # Perform inference
-    printf("Performing inference... ", end="")
-    predictions = model.predict(ds)
-    printf("Done!")
+    # Make the predictions
+    predictions = model.predict(kaggle_dataset)
 
-    # # Adjust values
-    printf("Adjusting values... ", end="")
-    if isinstance(predictions, tuple):
-        predictions = np.hstack(predictions)
-    predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
-    predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
-    printf("Done!")
+    # Format the predictions
+    predictions = tf.clip_by_value(predictions, 0, 1)
+    predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
 
-    mse = tf.keras.losses.MeanSquaredError()
-    error = mse(predictions, labels)
-    print(error)
-
-    # Write to csv
-    printf("Writing output... ", end="")
-    output_path = args.output or Path.joinpath(model_path.parent, "predicions.csv")
-    df = pd.DataFrame(
+    # Bring the predictions dataframe
+    predictions = pd.DataFrame(
         predictions,
-        columns=["angle", "speed"],
-        index=pd.RangeIndex(1, predictions.shape[0] + 1, name="image_id")
+        index=pd.RangeIndex(1, 1021),
+        columns=["angle", "speed"]
     )
-    df["speed"] = df["speed"].round(0).astype(int)
-    df.to_csv(output_path)
+    predictions.index.name = "image_id"
+    predictions["speed"] = predictions["speed"].astype("int")
+
+    # Write out to file
+    output_path = args.output or Path.joinpath(model_path.parent, "predicions.csv")
+    predictions.to_csv(output_path)
     printf("Done!")
-
-# def predict(args):
-#     printf = get_printf(args.verbose)
-
-#     # Load a model
-#     printf("Loading model... ", end="")
-#     model_path = Path(args.path)
-#     model = tf.keras.models.load_model(model_path)
-
-#     printf("Done!")
-#     printf("Loading dataset... ", end="")
-#     # Load the correct dataset
-#     ds = Dataset.load_test()
-#     printf("Done!")
-
-#     # Perform inference
-#     printf("Performing inference... ", end="")
-#     predictions = model.predict(ds)
-#     printf("Done!")
-
-#     # # Adjust values
-#     printf("Adjusting values... ", end="")
-#     if isinstance(predictions, tuple):
-#         predictions = np.hstack(predictions)
-#     predictions = np.apply_along_axis(normal_to_raw, 1, predictions)
-#     predictions = np.apply_along_axis(raw_to_normal, 1, predictions)
-#     printf("Done!")
-
-#     # Write to csv
-#     printf("Writing output... ", end="")
-#     output_path = args.output or Path.joinpath(model_path.parent, "predicions.csv")
-#     df = pd.DataFrame(
-#         predictions,
-#         columns=["angle", "speed"],
-#         index=pd.RangeIndex(1, predictions.shape[0] + 1, name="image_id")
-#     )
-#     df["speed"] = df["speed"].round(0).astype(int)
-#     df.to_csv(output_path)
-#     printf("Done!")
