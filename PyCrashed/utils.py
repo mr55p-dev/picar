@@ -110,3 +110,11 @@ def predict(args):
     output_path = args.output or Path.joinpath(model_path.parent, "predictions.csv")
     predictions.to_csv(output_path)
     printf("Done!")
+
+def convert(args):
+    model_path = Path(args.path)
+    output_file = args.output or Path.joinpath(model_path.parent, "model.tflite")
+    model_converter = tf.lite.TFLiteConverter.from_saved_model(str(model_path))
+    model = model_converter.convert()
+    with open(str(output_file), 'wb') as f:
+        f.write(model)

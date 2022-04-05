@@ -7,11 +7,19 @@ from PyCrashed import predict
 from PyCrashed.predict import Data
 
 # %%
-p1 = pd.read_csv("mlis-predictions.csv")
-p2 = pd.read_csv("products/Nvidia/predicions.csv")
+ds, _ = Data.training(0.7, 0.3, 8, False, False)
 # %%
-loss = tf.keras.losses.MeanSquaredError()
+tf.keras.layers.BatchNormalization()
 # %%
-l_angle = loss(p1["angle"].to_numpy(), p2["angle"].to_numpy())
-l_speed = loss(p1["speed"].to_numpy(), p2["speed"].to_numpy())
+batch = next(iter(ds))
+# %%
+loss = tf.keras.losses.BinaryCrossentropy()
+# %%
+labels = pd.read_csv("data/training_norm.csv")
+# %%
+labels = labels["speed"].to_numpy()
+# %%
+ones = np.ones(labels.shape)
+# %%
+loss(labels, ones)
 # %%
