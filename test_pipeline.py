@@ -98,8 +98,6 @@ model.compile(
 # %% Fit and evaluate the model
 metrics = model.fit(train_dataset, epochs=1, validation_data=val_dataset)
 test_error = model.evaluate(test_dataset)
-# %%
-model.save("./RetryPy-model/")
 # %% Test the models blind prediction
 blind_lab = test_dataset.map(lambda _, lab: lab)
 blind_lab = list(blind_lab)
