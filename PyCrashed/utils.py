@@ -75,6 +75,12 @@ def train_model(args):
     printf("Saving model")
     model.save()
 
+def clean_predictions(predictions):
+    # Format the predictions
+    predictions = tf.clip_by_value(predictions, 0, 1)
+    predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
+    return predictions
+
 def predict(args):
     printf = get_printf(args.verbose)
 
@@ -88,9 +94,8 @@ def predict(args):
     # Make the predictions
     predictions = model.predict(kaggle_dataset)
 
-    # Format the predictions
-    predictions = tf.clip_by_value(predictions, 0, 1)
-    predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
+    # Clean the predictions
+    predictions = clean_predictions(predictions)
 
     # Bring the predictions dataframe
     predictions = pd.DataFrame(
@@ -102,6 +107,6 @@ def predict(args):
     predictions["speed"] = predictions["speed"].astype("int")
 
     # Write out to file
-    output_path = args.output or Path.joinpath(model_path.parent, "predicions.csv")
+    output_path = args.output or Path.joinpath(model_path.parent, "predictions.csv")
     predictions.to_csv(output_path)
     printf("Done!")
