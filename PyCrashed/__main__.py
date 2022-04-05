@@ -26,7 +26,7 @@ train_command.add_argument(
 train_command.add_argument(
     "-nt", "--train", 
     help="Number of instances to use for training. (percentage)", 
-    type=float, default=.65
+    type=float, default=.75
 )
 train_command.add_argument(
     "-nv", "--val", 

@@ -3,15 +3,11 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from PyCrashed import predict
-from PyCrashed.predict import Data
-
+from PyCrashed.data import Data
 # %%
-p1 = pd.read_csv("mlis-predictions.csv")
-p2 = pd.read_csv("products/Nvidia/predicions.csv")
+t, _ = Data.training(.7, .3, 4)
 # %%
-loss = tf.keras.losses.MeanSquaredError()
+item = next(iter(t))
 # %%
-l_angle = loss(p1["angle"].to_numpy(), p2["angle"].to_numpy())
-l_speed = loss(p1["speed"].to_numpy(), p2["speed"].to_numpy())
+img, lab, weight = item
 # %%
