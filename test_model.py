@@ -1,6 +1,5 @@
 # %%
-from PyCrashed.predict import Data, _get_id, _load_image_tensor
-from PyCrashed.utils import clean_predictions
+from PyCrashed.predict import Data, _get_id, _load_image_tensor, clean_predictions
 from pathlib import Path
 import pandas as pd
 import numpy as np

@@ -1,6 +1,6 @@
 from pathlib import Path
 from PyCrashed.models import NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, ResNetPT, EfficientNetPT, Model
-from PyCrashed.predict import Data
+from PyCrashed.predict import Data, clean_predictions
 
 import numpy as np
 import pandas as pd
@@ -74,12 +74,6 @@ def train_model(args):
 
     printf("Saving model")
     model.save()
-
-def clean_predictions(predictions):
-    # Format the predictions
-    predictions = tf.clip_by_value(predictions, 0, 1)
-    predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
-    return predictions
 
 def predict(args):
     printf = get_printf(args.verbose)

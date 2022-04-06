@@ -71,7 +71,6 @@ _create_tensor_fn = lambda p: tf.py_function(
     Tout=(tf.float32, tf.float64, tf.float64)
 )
 
-
 def _label_outputs(img, label, weights):
     l = {
         "angle": label[0],
@@ -101,6 +100,20 @@ def _assign_weights(labels: pd.DataFrame):
     # Set a column in the labels dataframe
     labels["weight"] = labels["motion_class"].apply(lambda x: class_weights.loc[x, :])
     return labels
+
+def clean_predictions(predictions):
+    # Format the predictions
+    predictions = tf.clip_by_value(predictions, 0, 1)
+    predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
+    return predictions
+
+def convert_to_car_output(predictions):
+    angle = predictions[:, 0]
+    speed = predictions[:, 1]
+
+    angle = (angle * 80) + 50
+    speed = speed * 35
+    return np.hstack((angle, speed))
 
 class Data:
     @staticmethod
