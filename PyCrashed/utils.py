@@ -1,6 +1,6 @@
 from pathlib import Path
 from PyCrashed.models import NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, NVidiaZipped, ResNetPT, EfficientNetPT, Model
-from PyCrashed.data import Data
+from PyCrashed.data import Data, clean_predictions
 
 import numpy as np
 import pandas as pd
@@ -76,12 +76,6 @@ def train_model(args):
     printf("Saving model")
     model.save()
 
-def clean_predictions(predictions):
-    # Format the predictions
-    predictions = tf.clip_by_value(predictions, 0, 1)
-    predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
-    return predictions
-
 def predict(args):
     printf = get_printf(args.verbose)
 
@@ -115,3 +109,11 @@ def predict(args):
     output_path = args.output or Path.joinpath(model_path.parent, "predictions.csv")
     predictions.to_csv(output_path)
     printf("Done!")
+
+def convert(args):
+    model_path = Path(args.path)
+    output_file = args.output or Path.joinpath(model_path.parent, "model.tflite")
+    model_converter = tf.lite.TFLiteConverter.from_saved_model(str(model_path))
+    model = model_converter.convert()
+    with open(str(output_file), 'wb') as f:
+        f.write(model)

@@ -1,5 +1,5 @@
 import argparse
-from PyCrashed.utils import list_models, train_model, predict
+from PyCrashed.utils import convert, list_models, train_model, predict
 
 parser = argparse.ArgumentParser(description='Train some models.')
 subparsers = parser.add_subparsers(help='Available sub-commmands')
@@ -85,6 +85,11 @@ predict_command.add_argument("path", help="The path to a saved model file")
 predict_command.add_argument("-o", "--output", help="The output file destination")
 predict_command.add_argument("--silent", help="Hide pregress", default=True, action="store_false", dest="verbose")
 predict_command.set_defaults(func=predict)
+
+convert_command = subparsers.add_parser('convert', help='Convert a model to tflite')
+convert_command.add_argument("path", help="The path to a saved model file")
+convert_command.add_argument("-o", "--output", help="The output file destination")
+convert_command.set_defaults(func=convert)
 args = parser.parse_args()
 
 args.func(args)

@@ -15,6 +15,9 @@ wandb/
 # Unix nohup
 nohup.out
 
+# model files
+*.tflite
+
 # tests output
 exploratory-tests/
 
