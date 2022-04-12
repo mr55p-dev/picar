@@ -279,29 +279,37 @@ class ResNetPT(Model):
         }
 
     def specify_model(self):
-        base_model = tf.keras.applications.ResNet152V2(
+        base_model = tf.keras.applications.ResNet101V2(
             include_top=False,
-            weights=None,
+            weights='imagenet',
             input_shape=(224, 224, 3),
             pooling="avg",
         )
         i = tf.keras.Input(shape=(224, 224, 3))
-        i = tf.keras.layers.RandomContrast(0.2)(i)
+        i = tf.keras.layers.RandomContrast(0.1)(i)
         l = base_model(i)
-        l = tf.keras.layers.Dense(int(self.network_width * 1024), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 512), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 128), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
         l = tf.keras.layers.BatchNormalization()(l)
 
-        left = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
+        left = tf.keras.layers.Dense(int(self.network_width * 512))(l)
+        left = tf.keras.layers.Activation(self.activation)(left)
+        left = tf.keras.layers.Dropout(self.dropout_rate)(left)
+        left = tf.keras.layers.BatchNormalization()(left)
+        left = tf.keras.layers.Dense(int(self.network_width * 128))(left)
+        left = tf.keras.layers.Activation(self.activation)(left)
+        left = tf.keras.layers.BatchNormalization()(left)
+        left = tf.keras.layers.Dense(int(self.network_width * 64))(left)
+        left = tf.keras.layers.Activation(self.activation)(left)
         left = tf.keras.layers.Dense(1, name="angle")(left)
 
-        right = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
+        right = tf.keras.layers.Dense(int(self.network_width * 512))(l)
+        right = tf.keras.layers.Activation(self.activation)(right)
+        right = tf.keras.layers.Dropout(self.dropout_rate)(right)
+        right = tf.keras.layers.BatchNormalization()(right)
+        right = tf.keras.layers.Dense(int(self.network_width * 128))(right)
+        right = tf.keras.layers.Activation(self.activation)(right)
+        right = tf.keras.layers.BatchNormalization()(right)
+        right = tf.keras.layers.Dense(int(self.network_width * 64))(right)
+        right = tf.keras.layers.Activation(self.activation)(right)
         right = tf.keras.layers.Dense(1, name="speed")(right)
         return i, (left, right)
 

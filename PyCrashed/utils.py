@@ -67,7 +67,8 @@ def train_model(args):
     printf("Done!")
 
     printf("Configuring data pipeline... ", end="")
-    train_ds, val_ds = Data.training(args.train, args.val, args.batch, multiheaded=model.is_split)
+    batch = args.batch * strategy.num_replicas_in_sync
+    train_ds, val_ds = Data.training(args.train, args.val, batch , multiheaded=model.is_split)
     printf("Done!")
 
     printf("Training model")
@@ -81,7 +82,8 @@ def predict(args):
 
     # Load a model
     model_path = Path(args.path)
-    model = tf.keras.models.load_model(model_path)
+    print(model_path)
+    model = tf.keras.models.load_model(str(model_path))
 
     # Load the correct dataset
     kaggle_dataset = Data.testing(1)
