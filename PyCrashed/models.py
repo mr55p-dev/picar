@@ -279,7 +279,7 @@ class ResNetPT(Model):
         }
 
     def specify_model(self):
-        base_model = tf.keras.applications.ResNet152V2(
+        base_model = tf.keras.applications.ResNet101V2(
             include_top=False,
             weights=None,
             input_shape=(224, 224, 3),
