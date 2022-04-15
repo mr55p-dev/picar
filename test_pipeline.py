@@ -147,7 +147,7 @@ predictions.index.name = "image_id"
 predictions["speed"] = predictions["speed"].astype("int")
 # %%
 BATCH = 1
-from PyCrashed.predict import Data
+from PyCrashed.data import Data
 test_blind_tensor = Data.testing(BATCH)
 test_blind_gen = tf.data.Dataset.from_generator(
     create_kaggle_item,

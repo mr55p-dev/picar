@@ -2,7 +2,17 @@
 from tensorflow import lite as tflite
 from tensorflow import image
 import tensorflow as tf
+from PyCrashed import predict
+from PyCrashed.predict import Data
+
 # %%
+ds, _ = Data.training(0.7, 0.3, 8, False, False)
+# %%
+tf.keras.layers.BatchNormalization()
+# %%
+batch = next(iter(ds))
+# %%
+loss = tf.keras.losses.BinaryCrossentropy()
 # %%
 class Model:
     __slots__ = ['interpreter', 'inp_tensor_idx', 'out_tensor_idx']

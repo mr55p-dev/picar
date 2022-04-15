@@ -1,6 +1,6 @@
 from pathlib import Path
-from PyCrashed.models import NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, ResNetPT, EfficientNetPT, Model
-from PyCrashed.predict import Data, clean_predictions
+from PyCrashed.models import NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, NVidiaZipped, ResNetPT, EfficientNetPT, Model
+from PyCrashed.data import Data, clean_predictions
 
 import numpy as np
 import pandas as pd
@@ -15,6 +15,7 @@ def get_printf(verbose):
 models = {
     "nvidia": NVidia,
     "nvidia_split": NVidiaSplit,
+    "nvidia_zipped": NVidiaZipped,
     "mobilenet": MobileNetPT,
     "efficientnet": EfficientNetPT,
     "resnet": ResNetPT,
@@ -66,7 +67,8 @@ def train_model(args):
     printf("Done!")
 
     printf("Configuring data pipeline... ", end="")
-    train_ds, val_ds = Data.training(args.train, args.val, args.batch)
+    batch = args.batch * strategy.num_replicas_in_sync
+    train_ds, val_ds = Data.training(args.train, args.val, batch , multiheaded=model.is_split)
     printf("Done!")
 
     printf("Training model")
@@ -80,13 +82,18 @@ def predict(args):
 
     # Load a model
     model_path = Path(args.path)
-    model = tf.keras.models.load_model(model_path)
+    print(model_path)
+    model = tf.keras.models.load_model(str(model_path))
 
     # Load the correct dataset
     kaggle_dataset = Data.testing(1)
 
     # Make the predictions
     predictions = model.predict(kaggle_dataset)
+
+    # Convert multiheaded output back into the proper form
+    if isinstance(predictions, tuple):
+        predictions = np.hstack(predictions)
 
     # Clean the predictions
     predictions = clean_predictions(predictions)
