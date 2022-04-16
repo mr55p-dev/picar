@@ -270,7 +270,7 @@ class ResNetPT(Model):
     def __init__(self, **kwargs):
         super().__init__("ResNetPT", **kwargs)
         self.loss = {
-            "angle": tf.keras.losses.MeanSquaredError(),
+            "angle": tf.keras.losses.MeanAbsoluteError(),
             "speed": tf.keras.losses.BinaryCrossentropy()
         }
         self.metrics = {
@@ -279,9 +279,9 @@ class ResNetPT(Model):
         }
 
     def specify_model(self):
-        base_model = tf.keras.applications.ResNet101V2(
+        base_model = tf.keras.applications.ResNet50V2(
             include_top=False,
-            weights=None,
+            weights="imagenet",
             input_shape=(224, 224, 3),
             pooling="avg",
         )

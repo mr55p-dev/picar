@@ -13,14 +13,17 @@ def _get_id(path: Path):
 
 # Function to assign an instance to a grouping and give that grouping a weight
 def _assign_weights(labels: pd.DataFrame):
-    def classify_instance(instance):
+    def classify_instance_by_dir(instance):
         if instance[2] == 0: return 0 # Stopped
         elif instance[1] <= 0.4375: return 1 # Left (85 degrees)
         elif instance[1] >= 0.5625: return 2 # Right (95 degrees)
         else: return 3 # Straight
+    
+    def classify_instance_by_speed(instance):
+        return instance[2]
 
     # One-hot encode the conditionals given by classify_instance
-    labels["motion_class"] = np.apply_along_axis(classify_instance, 1, labels.to_numpy())
+    labels["motion_class"] = np.apply_along_axis(classify_instance_by_speed, 1, labels.to_numpy())
 
     # Calculate the weighting of each class
     classes = labels["motion_class"].unique()
