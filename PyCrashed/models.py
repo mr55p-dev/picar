@@ -151,122 +151,7 @@ class NVidia(Model):
         o = tf.keras.layers.Dense(2)(l)
         return i, o
 
-class NVidiaSplit(Model):
-    def __init__(self, **kwargs):
-        super().__init__("Nvidia_split", **kwargs)
-        self.loss = {
-            "angle": tf.keras.losses.MeanSquaredError(),
-            "speed": tf.keras.losses.BinaryCrossentropy()
-        }
-        self.metrics = {
-            "angle": tf.keras.metrics.RootMeanSquaredError(),
-            "speed": tf.keras.metrics.BinaryAccuracy(),
-        }
-
-    def specify_model(self):
-        i = tf.keras.Input(shape=(224, 224, 3))
-        l = tf.keras.layers.BatchNormalization()(i)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 24), (5, 5), strides=(2, 2))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 36), (5, 5), strides=(2, 2))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (5, 5), strides=(2, 2))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.MaxPool2D((2, 2))(l)
-        l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.MaxPool2D((2, 2))(l)
-
-        l = tf.keras.layers.Flatten()(l)
-
-        l = tf.keras.layers.Dense(int(self.network_width * 128))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Dropout(0.25)(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 64))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        o_l = tf.keras.layers.Dense(1, name="angle")(l)
-
-        r = tf.keras.layers.Conv2D(int(self.kernel_width * 24), (5, 5), strides=(2, 2))(i)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.Conv2D(int(self.kernel_width * 36), (5, 5), strides=(2, 2))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (5, 5), strides=(2, 2))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.MaxPool2D((2, 2))(r)
-        r = tf.keras.layers.BatchNormalization()(r)
-        r = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.MaxPool2D((2, 2))(r)
-
-        r = tf.keras.layers.Flatten()(r)
-
-        r = tf.keras.layers.Dense(int(self.network_width * 128))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.Dropout(0.25)(r)
-        r = tf.keras.layers.Dense(int(self.network_width * 64))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        o_r = tf.keras.layers.Dense(1, name="speed")(r)
-        return i, (o_l, o_r)
-
-class NVidiaZipped(Model):
-    def __init__(self, **kwargs):
-        super().__init__("Nvidia_zipped", **kwargs)
-        self.loss = {
-            "angle": tf.keras.losses.MeanSquaredError(),
-            "speed": tf.keras.losses.BinaryCrossentropy()
-        }
-        self.metrics = {
-            "angle": tf.keras.metrics.RootMeanSquaredError(),
-            "speed": tf.keras.metrics.BinaryAccuracy(),
-        }
-
-    def specify_model(self):
-        i = tf.keras.Input(shape=(224, 224, 3))
-        c = tf.keras.layers.BatchNormalization()(i)
-        c = tf.keras.layers.Conv2D(int(self.kernel_width * 24), (5, 5), strides=(2, 2))(c)
-        c = tf.keras.layers.Activation(self.activation)(c)
-        c = tf.keras.layers.Conv2D(int(self.kernel_width * 36), (5, 5), strides=(2, 2))(c)
-        c = tf.keras.layers.Activation(self.activation)(c)
-        c = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (5, 5), strides=(2, 2))(c)
-        c = tf.keras.layers.Activation(self.activation)(c)
-        c = tf.keras.layers.MaxPool2D((2, 2))(c)
-        c = tf.keras.layers.BatchNormalization()(c)
-
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(c)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.MaxPool2D((2, 2))(l)
-        l = tf.keras.layers.Flatten()(l)
-
-        l = tf.keras.layers.Dense(int(self.network_width * 128))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Dropout(0.25)(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 64))(l)
-        l = tf.keras.layers.Activation(self.activation)(l)
-        o_l = tf.keras.layers.Dense(1, name="angle")(l)
-
-        r = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(c)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.MaxPool2D((2, 2))(r)
-        r = tf.keras.layers.Flatten()(r)
-
-        r = tf.keras.layers.Dense(int(self.network_width * 128))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        r = tf.keras.layers.Dropout(0.25)(r)
-        r = tf.keras.layers.Dense(int(self.network_width * 64))(r)
-        r = tf.keras.layers.Activation(self.activation)(r)
-        o_r = tf.keras.layers.Dense(1, name="speed")(r)
-        return i, (o_l, o_r)
-
-class ResNetPT(Model):
+class ResNet(Model):
     def __init__(self, **kwargs):
         super().__init__("ResNetPT", **kwargs)
         self.loss = {
@@ -287,47 +172,27 @@ class ResNetPT(Model):
         )
         i = tf.keras.Input(shape=(224, 224, 3))
         i = tf.keras.layers.RandomContrast(0.2)(i)
-        l = base_model(i)
-        l = tf.keras.layers.Dense(int(self.network_width * 1024), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 512), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 128), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.BatchNormalization()(i)
+        l = base_model(l)
 
-        left = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
+        left = tf.keras.layers.Dense(int(self.network_width * 128))(l)
+        left = tf.keras.layers.Activation(self.activation)(left)
+        left = tf.keras.layers.BatchNormalization()(left)
+        left = tf.keras.layers.Dense(int(self.network_width * 64))(l)
+        left = tf.keras.layers.Activation(self.activation)(left)
+        left = tf.keras.layers.BatchNormalization()(left)
         left = tf.keras.layers.Dense(1, name="angle")(left)
 
-        right = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
+        right = tf.keras.layers.Dense(int(self.network_width * 128))(l)
+        right = tf.keras.layers.Activation(self.activation)(right)
+        right = tf.keras.layers.BatchNormalization()(right)
+        right = tf.keras.layers.Dense(int(self.network_width * 64))(l)
+        right = tf.keras.layers.Activation(self.activation)(right)
+        right = tf.keras.layers.BatchNormalization()(right)
         right = tf.keras.layers.Dense(1, name="speed")(right)
         return i, (left, right)
-
     
-class MobileNetPT(Model):
-    def __init__(self, **kwargs):
-        super().__init__("MobileNet", **kwargs)
-
-    def specify_model(self):
-        base_model = tf.keras.applications.MobileNetV2(
-            input_shape=(224, 224, 3),
-            include_top=False
-        )
-        inp = tf.keras.Input(shape=(224, 224, 3))
-        img = base_model(inp)
-        l = tf.keras.layers.MaxPooling2D((2, 2))(img)
-        l = tf.keras.layers.Conv2D(96, (3, 3), strides=(1, 1), activation="relu")(l)
-        l = tf.keras.layers.Flatten()(l)
-        l = tf.keras.layers.Dense(1164, activation="relu")(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
-        l = tf.keras.layers.Dense(64, activation="relu")(l)
-        o = tf.keras.layers.Dense(2)(l)
-        return inp, o
-
-    
-class EfficientNetPT(Model):
+class EfficientNet(Model):
     def __init__(self, **kwargs):
         super().__init__("EfficientNet", **kwargs)
 
@@ -396,5 +261,3 @@ class MultiHeaded(Model):
         right = tf.keras.layers.Dense(64, activation="relu")(right)
         right = tf.keras.layers.Dense(2, name="speed")(right)
         return i, (left, right)
-
-

@@ -1,5 +1,5 @@
 from pathlib import Path
-from PyCrashed.models import NVidia, MobileNetPT, MultiHeaded, NVidiaSplit, NVidiaZipped, ResNetPT, EfficientNetPT, Model
+from PyCrashed.models import NVidia, MultiHeaded, ResNet, EfficientNet, Model
 from PyCrashed.data import Data, clean_predictions
 
 import numpy as np
@@ -14,11 +14,8 @@ def get_printf(verbose):
 
 models = {
     "nvidia": NVidia,
-    "nvidia_split": NVidiaSplit,
-    "nvidia_zipped": NVidiaZipped,
-    "mobilenet": MobileNetPT,
-    "efficientnet": EfficientNetPT,
-    "resnet": ResNetPT,
+    "efficientnet": EfficientNet,
+    "resnet": ResNet,
     "multiheaded": MultiHeaded,
 }
 
