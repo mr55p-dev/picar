@@ -148,9 +148,6 @@ vignettes/*.pdf
 # pkgdown site
 docs/
 
-# Data
-/data
-
 # OS X
 .DS_Store
 
