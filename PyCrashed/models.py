@@ -7,7 +7,8 @@ from typing import Tuple
 import tensorflow as tf
 from wandb.keras import WandbCallback
 
-class Model():
+class BaseModel():
+    """A base class which implements some convenient things that need to be done for every model"""
     def __init__(
         self,
         name: str,
@@ -23,6 +24,7 @@ class Model():
         self.name = name
         self.verbosity = 1 if verbose else 0
 
+        # Define the parameters
         self.kernel_width = kernel_width or 1
         self.network_width = network_width or 1
         self.activation = activation or 'relu'
@@ -31,6 +33,7 @@ class Model():
         self.dropout_rate = dropout_rate or 0
         self.paitence = paitence or 5
 
+        # Setup default metrics, callbacks
         self.metrics = [
             tf.keras.metrics.RootMeanSquaredError(),
             tf.keras.metrics.KLDivergence()
@@ -49,7 +52,7 @@ class Model():
 
     @abstractmethod
     def specify_model(self) -> Tuple:
-        # Should return just inputs and outputs
+        # Should return references to input and output tensors
         ...
 
     def build(self):
@@ -69,6 +72,12 @@ class Model():
             validation_data: tf.data.Dataset,
             n_epochs: int = 10
         ):
+        """Literally just calls keras.models.Model.fit()
+        Consider removing the validation data; for some reason
+        the distribution strategy doesnt support putting validation
+        calculations on a GPU, so in some cases its the same speed
+        as the training step...
+        """
         self.fit_metrics = self.model.fit(
             data,
             epochs=n_epochs,
@@ -80,23 +89,29 @@ class Model():
         return self.fit_metrics
 
     def test(self, data: tf.data.Dataset):
+        """Just calls keras.models.Model.evaluate()"""
         self.test_metrics = self.model.evaluate(data, verbose=self.verbosity)
         return self.test_metrics
 
     def add_callback(self, callback):
+        """Appends a callback to the list"""
         self.callbacks.append(callback)
 
     def set_loss(self, loss):
+        """Set the model loss function"""
         self.loss = loss
 
     def set_optimizer(self, optimizer):
+        """Set the model optimizer"""
         self.optimizer = optimizer
 
     def set_activation(self, activation):
+        """Set the activation function in the model"""
         self.activation = activation
 
     @staticmethod
     def _save_metrics(cb, path):
+        """Save the models metrics to a csv file in the model path"""
         os.makedirs(os.path.dirname(str(path)), exist_ok=True)
         with open(path, 'w') as f:
             w = csv.writer(f)
@@ -104,6 +119,7 @@ class Model():
             w.writerows(zip(*cb.history.values()))
 
     def save(self, path = None) -> None:
+        """Save the model to the proper directory"""
         if not hasattr(self, "model"):
             raise ValueError("No model set")
 
@@ -116,11 +132,13 @@ class Model():
             self._save_metrics(self.fit_metrics, Path.joinpath(path, "fit_metrics.csv"))
 
     def restore(self, path = None) -> None:
+        """Restore a model from a saved_model file"""
         if not path:
             path = Path(f"products/{self.name}/checkpoint")
         self.model = tf.keras.models.load_model(path)
 
-class NVidia(Model):
+class NVidia(BaseModel):
+    """Implements the model specified by the Nvidia researchers"""
     def __init__(self, **kwargs):
         super().__init__("Nvidia", **kwargs)
 
@@ -151,7 +169,8 @@ class NVidia(Model):
         o = tf.keras.layers.Dense(2)(l)
         return i, o
 
-class ResNet(Model):
+class ResNet(BaseModel):
+    """Implements a ResNet model, with split output heads. This model can be a little bit unstable"""
     def __init__(self, **kwargs):
         super().__init__("ResNetPT", **kwargs)
         self.loss = {
@@ -192,7 +211,7 @@ class ResNet(Model):
         right = tf.keras.layers.Dense(1, name="speed")(right)
         return i, (left, right)
     
-class EfficientNet(Model):
+class EfficientNet(BaseModel):
     def __init__(self, **kwargs):
         super().__init__("EfficientNet", **kwargs)
 
@@ -222,7 +241,7 @@ class EfficientNet(Model):
         right = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
         right   = tf.keras.layers.Dense(1)(right)
 
-class MultiHeaded(Model):
+class MultiHeaded(BaseModel):
     def __init__(self, **kwargs):
         super().__init__("MultiHeaded", **kwargs)
         self.loss = (
