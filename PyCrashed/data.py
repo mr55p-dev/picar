@@ -13,17 +13,19 @@ def _get_id(path: Path):
 
 # Function to assign an instance to a grouping and give that grouping a weight
 def _assign_weights(labels: pd.DataFrame):
+    # Weight the examples by steering angle and speed
     def classify_instance_by_dir(instance):
         if instance[2] == 0: return 0 # Stopped
         elif instance[1] <= 0.4375: return 1 # Left (85 degrees)
         elif instance[1] >= 0.5625: return 2 # Right (95 degrees)
         else: return 3 # Straight
     
+    # Weight the examples by speed only
     def classify_instance_by_speed(instance):
         return instance[2]
 
     # One-hot encode the conditionals given by classify_instance
-    labels["motion_class"] = np.apply_along_axis(classify_instance_by_speed, 1, labels.to_numpy())
+    labels["motion_class"] = np.apply_along_axis(classify_instance_by_dir, 1, labels.to_numpy())
 
     # Calculate the weighting of each class
     classes = labels["motion_class"].unique()
@@ -59,7 +61,8 @@ _labels = Path("data/training_norm.csv")
 _labels = pd.read_csv(_labels)
 _labels = _assign_weights(_labels)
 
-# Define a load image function
+# Function to load an image from .png file into a properly
+# encoded tensor
 def _load_image_tensor(path: Path):
     img = tf.io.read_file(path)
     img = tf.image.decode_png(img, channels=3)
@@ -68,7 +71,7 @@ def _load_image_tensor(path: Path):
     img = tf.image.resize(img, (224, 224))
     return img
 
-# Define a load id tensor
+# Function to get the id of an image from its pathname
 def _get_id_tensor(path):
     img_id = tf.strings.split(path, os.sep)
     img_id = img_id[-1] # Get the last path component
@@ -76,7 +79,7 @@ def _get_id_tensor(path):
     img_id = int(tf.strings.to_number(img_id))
     return img_id
 
-# Define a load labels tensor
+# Gets the speed, angle and "weight" of a given image id
 def _get_angle_speed_tensor(img_id: int):
     row = _labels[_labels["image_id"] == img_id]
 
@@ -92,20 +95,24 @@ def _get_angle_speed_tensor(img_id: int):
 
     return label, weight
 
-# Combine the above functions
+# Load an image, label and weight tensor from a path
 def _create_tensor(path):
     img = _load_image_tensor(path)
     img_id = _get_id_tensor(path)
     label, weight = _get_angle_speed_tensor(img_id)
     return img, label, weight
 
-# Convert this to py_func
+# Configure this as a py_function in the tf graph
+# so it can be compiled
 _create_tensor_fn = lambda p: tf.py_function(
     _create_tensor,
     inp=[p],
     Tout=(tf.float32, tf.float64, tf.float64)
 )
 
+# Function to change the label tensor into a dict
+# which is used in multi-output models to ensure
+# the correct labels are applied to each output node
 def _label_outputs(img, label, weights):
     l = {
         "angle": label[0],
@@ -113,12 +120,13 @@ def _label_outputs(img, label, weights):
     }
     return img, l, weights
 
+# Ensure predicted angles are [0, 1] and speeds are 0 | 1
 def clean_predictions(predictions):
-    # Format the predictions
     predictions = tf.clip_by_value(predictions, 0, 1)
     predictions = np.stack((predictions[:, 0], np.rint(predictions[:, 1]))).T
     return predictions
 
+# Reverse the normalization
 def convert_to_car_output(predictions):
     angle = predictions[:, 0]
     speed = predictions[:, 1]
@@ -127,9 +135,17 @@ def convert_to_car_output(predictions):
     speed = speed * 35
     return np.hstack((angle, speed))
 
+
 class Data:
+    """
+    Class to manage training and testing datasets.
+    Note this definitely does not need to be a class, I just cant be bothered to go back through the
+    spaghetti in `utils.py` and change everything, so when i rewrote this i just made it a class of
+    static methods...
+    """
     @staticmethod
     def testing(batch_size: int):
+        """Get a tf.data.Dataset instance containing batched, cached and prefetched files from _files_test"""
         BATCH = batch_size
         load_blind_img = lambda p: tf.py_function(
             _load_image_tensor,
@@ -148,6 +164,7 @@ class Data:
             batch_size: int,
             multiheaded: bool = False
         ):
+        """Get two tf.data.Dataset instances (training, validation) containing batched, cached and prefetched files from _files_train"""
         # Set the number of files and the size of the data to take
         N_FILES = len(_files_train)
         N_TRAIN = int(train * N_FILES)
