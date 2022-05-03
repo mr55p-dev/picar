@@ -240,6 +240,48 @@ class EfficientNet(BaseModel):
 
         right = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
         right   = tf.keras.layers.Dense(1)(right)
+    
+class InceptionResNet(BaseModel):
+    def __init__(self, **kwargs):
+        super().__init__("InceptionResNet", **kwargs)
+        self.loss = {
+            "angle": tf.keras.losses.MeanSquaredError(),
+            "speed": tf.keras.losses.BinaryCrossentropy()
+        }
+        self.metrics = {
+            "angle": tf.keras.metrics.RootMeanSquaredError(),
+            "speed": tf.keras.metrics.BinaryAccuracy(),
+        }
+
+    def specify_model(self):
+        base_model = tf.keras.applications.InceptionResNetV2(
+            include_top=False,
+            weights=None,
+            input_shape=(224, 224, 3),
+            pooling="avg",
+        )
+        i = tf.keras.Input(shape=(224, 224, 3))
+        i = tf.keras.layers.RandomContrast(0.2)(i)
+        l = tf.keras.layers.BatchNormalization()(i)
+        l = base_model(l)
+
+        left = tf.keras.layers.Dense(int(self.network_width * 128))(l)
+        left = tf.keras.layers.Activation(self.activation)(left)
+        left = tf.keras.layers.BatchNormalization()(left)
+        left = tf.keras.layers.Dense(int(self.network_width * 64))(l)
+        left = tf.keras.layers.Activation(self.activation)(left)
+        left = tf.keras.layers.BatchNormalization()(left)
+        left = tf.keras.layers.Dense(1, name="angle")(left)
+
+        right = tf.keras.layers.Dense(int(self.network_width * 128))(l)
+        right = tf.keras.layers.Activation(self.activation)(right)
+        right = tf.keras.layers.BatchNormalization()(right)
+        right = tf.keras.layers.Dense(int(self.network_width * 64))(l)
+        right = tf.keras.layers.Activation(self.activation)(right)
+        right = tf.keras.layers.BatchNormalization()(right)
+        right = tf.keras.layers.Dense(1, name="speed")(right)
+
+        return i, (left, right)
 
 class MultiHeaded(BaseModel):
     def __init__(self, **kwargs):

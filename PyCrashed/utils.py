@@ -6,7 +6,7 @@ import tensorflow as tf
 import wandb
 
 from PyCrashed.data import Data, clean_predictions
-from PyCrashed.models import (BaseModel, EfficientNet, MultiHeaded, NVidia,
+from PyCrashed.models import (BaseModel, EfficientNet, InceptionResNet, MultiHeaded, NVidia,
                               ResNet)
 
 
@@ -21,6 +21,7 @@ models = {
     "efficientnet": EfficientNet,
     "resnet": ResNet,
     "multiheaded": MultiHeaded,
+    "inceptionresnet": InceptionResNet,
 }
 
 def list_models(args):
