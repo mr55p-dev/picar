@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
+
 # Function to get the id of an image given its path
 def _get_id(path: Path):
     img_id = path.name
@@ -40,26 +41,46 @@ def _assign_weights(labels: pd.DataFrame):
     labels = labels.drop("motion_class", axis=1)
     return labels
 
-# Define the training files
-_files_train = [
-    i for i in Path("data/training_data/training_data").glob("*.png")
-    if i.lstat().st_size > 0
-]
-_files_train = sorted(_files_train, key=_get_id)
-_files_train = [str(i) for i in _files_train]
 
-# Define the testing files
-_files_test = [
-    i for i in Path("data/test_data/test_data").glob("*.png")
-    if i.lstat().st_size > 0
-]
-_files_test = sorted(_files_test, key=_get_id)
-_files_test = [str(i) for i in _files_test]
+class Config():
+    train_path = Path("data/training_data/training_data")
+    test_path = Path("data/test_data/test_data")
+    labels_path = Path("data/training_norm.csv")
 
-# Define the labels
-_labels = Path("data/training_norm.csv")
-_labels = pd.read_csv(_labels)
-_labels = _assign_weights(_labels)
+    @classmethod
+    def set_train_path(cls, path: Path):
+        cls.train_path = path
+
+    @classmethod
+    def set_test_path(cls, path: Path):
+        cls.test_path = path
+
+    @classmethod
+    def set_labels_path(cls, path: Path):
+        cls.labels_path = path
+
+    @classmethod
+    def get_files_train(cls):
+        files_train = [
+            i for i in cls.train_path.glob("*.png")
+            if i.lstat().st_size > 0
+        ]
+        files_train = sorted(files_train, key=_get_id)
+        return [str(i) for i in files_train]
+
+    @classmethod
+    def get_files_test(cls):
+        files_test = [
+            i for i in cls.test_path.glob("*.png")
+            if i.lstat().st_size > 0
+        ]
+        files_test = sorted(files_test, key=_get_id)
+        return [str(i) for i in files_test]
+
+    @classmethod
+    def get_labels(cls):
+        labels = pd.read_csv(cls.labels_path)
+        labels = _assign_weights(labels)
 
 # Function to load an image from .png file into a properly
 # encoded tensor
@@ -81,7 +102,7 @@ def _get_id_tensor(path):
 
 # Gets the speed, angle and "weight" of a given image id
 def _get_angle_speed_tensor(img_id: int):
-    row = _labels[_labels["image_id"] == img_id]
+    row = Config.labels[Config.labels["image_id"] == img_id]
 
     label = row[["angle", "speed"]]
     label = label.to_numpy()
@@ -152,7 +173,7 @@ class Data:
             inp=[p],
             Tout=tf.float32
         )
-        dataset = tf.data.Dataset.from_tensor_slices(_files_test)
+        dataset = tf.data.Dataset.from_tensor_slices(Config.files_test)
         dataset = dataset.map(load_blind_img)
         dataset = dataset.batch(BATCH).cache().prefetch(tf.data.AUTOTUNE)
         return dataset
@@ -166,20 +187,20 @@ class Data:
         ):
         """Get two tf.data.Dataset instances (training, validation) containing batched, cached and prefetched files from _files_train"""
         # Set the number of files and the size of the data to take
-        N_FILES = len(_files_train)
+        N_FILES = len(Config.files_train)
         N_TRAIN = int(train * N_FILES)
         N_VAL   = int(val * N_FILES)
         BATCH   = batch_size
 
         # Create the dataset from_tensor_slices and apply transformations
-        train_dataset   = tf.data.Dataset.from_tensor_slices(_files_train).shuffle(512)
+        train_dataset   = tf.data.Dataset.from_tensor_slices(Config.files_train).shuffle(512)
         train_dataset   = train_dataset.map(_create_tensor_fn)
         if multiheaded: 
             train_dataset = train_dataset.map(_label_outputs)
         train_dataset   = train_dataset.take(N_TRAIN).batch(BATCH)\
             .cache().prefetch(tf.data.AUTOTUNE)
 
-        val_dataset     = tf.data.Dataset.from_tensor_slices(_files_train).shuffle(512)
+        val_dataset     = tf.data.Dataset.from_tensor_slices(Config.files_train).shuffle(512)
         val_dataset     = val_dataset.map(_create_tensor_fn)
         if multiheaded: 
             val_dataset = val_dataset.map(_label_outputs)
@@ -197,20 +218,20 @@ class Data:
         ):
         """Get two tf.data.Dataset instances (training, validation) containing batched, cached and prefetched files from _files_train"""
         # Set the number of files and the size of the data to take
-        N_FILES = len(_files_train_t1)
+        N_FILES = len(Config.files_train)
         N_TRAIN = int(train * N_FILES)
         N_VAL   = int(val * N_FILES)
         BATCH   = batch_size
 
         # Create the dataset from_tensor_slices and apply transformations
-        train_dataset   = tf.data.Dataset.from_tensor_slices(_files_train_t1).shuffle(512)
+        train_dataset   = tf.data.Dataset.from_tensor_slices(Config.files_train).shuffle(512)
         train_dataset   = train_dataset.map(_create_tensor_fn)
         if multiheaded: 
             train_dataset = train_dataset.map(_label_outputs)
         train_dataset   = train_dataset.take(N_TRAIN).batch(BATCH)\
             .cache().prefetch(tf.data.AUTOTUNE)
 
-        val_dataset     = tf.data.Dataset.from_tensor_slices(_files_train_t1).shuffle(512)
+        val_dataset     = tf.data.Dataset.from_tensor_slices(Config.files_train).shuffle(512)
         val_dataset     = val_dataset.map(_create_tensor_fn)
         if multiheaded: 
             val_dataset = val_dataset.map(_label_outputs)
