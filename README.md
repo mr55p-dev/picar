@@ -1,36 +1,12 @@
-# picar
-Requires [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+# Picar model training pipeline
 
 ## Setup
+There shouldn't be any unusual dependencies, the environment I am using is in `environment.yml`.
 
-```sh
-# NOTE: if running ploomber <0.16, remove the --create-env argument
-ploomber install --create-env
-# activate conda environment
-conda activate picar
+## Usage
+At the command line, run `python3 -m PyCrashed -h` for a list of commands. These commands are pretty self explanatory, but for a list of valid options for each run `python3 -m PyCrashed <command> --help`. 
 
-```
+All the models and predictions get output to a folder `products/<model name>` unless specified otherwise.
 
-## Code editor integration
-
-* If using Jupyter, [click here](https://docs.ploomber.io/en/latest/user-guide/jupyter.html)
-* If using VSCode, PyCharm, or Spyder, [click here](https://docs.ploomber.io/en/latest/user-guide/editors.html)
-
-
-
-## Running the pipeline
-
-Create an `env.yaml` file which defines the following:
-```yaml
-n_samples:	<number of items to take from the training data>
-n_epochs: 	<number of epochs to train for>
-batch_size:	<number of elements in each batch>
-```
-
-```sh
-ploomber build
-```
-
-## Help
-
-* Need help? [Ask us anything on Slack!](https://ploomber.io/community)
+## Specifying a new model
+The `BaseModel` class wraps most of the functionality, so just inherit from that and implement the `specify_model` method which returns the inputs and output functions of a Keras functional mode.
