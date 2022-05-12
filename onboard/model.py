@@ -1,7 +1,5 @@
 import cv2
 from numpy import clip, expand_dims, rint
-# import tensorflow.lite as tflite
-# from tensorflow.lite.experimental import load_delegate
 import tflite_runtime.interpreter as tflite
 from tflite_runtime import load_delegate
 
