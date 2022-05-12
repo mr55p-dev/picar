@@ -188,34 +188,3 @@ class Data:
 
         return train_dataset, val_dataset
 
-    @staticmethod
-    def training_t1(
-            train: float,
-            val: float,
-            batch_size: int,
-            multiheaded: bool = False
-        ):
-        """Get two tf.data.Dataset instances (training, validation) containing batched, cached and prefetched files from _files_train"""
-        # Set the number of files and the size of the data to take
-        N_FILES = len(_files_train_t1)
-        N_TRAIN = int(train * N_FILES)
-        N_VAL   = int(val * N_FILES)
-        BATCH   = batch_size
-
-        # Create the dataset from_tensor_slices and apply transformations
-        train_dataset   = tf.data.Dataset.from_tensor_slices(_files_train_t1).shuffle(512)
-        train_dataset   = train_dataset.map(_create_tensor_fn)
-        if multiheaded: 
-            train_dataset = train_dataset.map(_label_outputs)
-        train_dataset   = train_dataset.take(N_TRAIN).batch(BATCH)\
-            .cache().prefetch(tf.data.AUTOTUNE)
-
-        val_dataset     = tf.data.Dataset.from_tensor_slices(_files_train_t1).shuffle(512)
-        val_dataset     = val_dataset.map(_create_tensor_fn)
-        if multiheaded: 
-            val_dataset = val_dataset.map(_label_outputs)
-        val_dataset     = val_dataset.skip(N_TRAIN).take(N_VAL).batch(BATCH)\
-            .cache().prefetch(tf.data.AUTOTUNE)
-
-        return train_dataset, val_dataset
-
