@@ -23,7 +23,7 @@ for idx, f in enumerate(paths, start=40000):
     f.rename(f"{idx}.png")
 
 # %%
-d = pd.DataFrame(data, columns=["index", "angle", "speed"])
+d = pd.DataFrame(data, columns=["image_id", "angle", "speed"])
 d.to_csv("track_1.csv")
 
 # %%
