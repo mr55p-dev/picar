@@ -1,6 +1,7 @@
 # %%
 from pathlib import Path
-from PyCrashed.data import Config, Data
+from PyCrashed.datanew import Config, Data
+from PyCrashed.data import Data as DataOld
 
 import tensorflow as tf
 from tensorflow import keras
@@ -59,9 +60,7 @@ hist1 = model.fit(
 )
 model.save("newmodel/mobnet/stage1")
 # %% Setup the main data
-Config.set_labels_path(Path("data/training_norm.csv"))
-Config.set_train_path(Path("data/training_data/training_data"))
-train_ds_norm, val_ds_norm = Data.training(0.8, 0.2, 8, False)
+train_ds_norm, val_ds_norm = DataOld.training(0.8, 0.2, 8, False)
 
 hist2 = model.fit(
     train_ds_norm,
