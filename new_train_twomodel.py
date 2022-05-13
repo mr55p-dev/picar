@@ -35,7 +35,7 @@ model.compile(
 )
 
 # %% load the model
-model = keras.models.load_model("newmodel/mobnet/stage1")
+model = keras.models.load_model("newmodel/mobnet/checkpoint")
 
 # %% Setup the data for T2
 
@@ -46,7 +46,7 @@ train_ds_1, val_ds_1 = Data.training(0.8, 0.2, 4, False)
 hist1 = model.fit(
     train_ds_1,
     validation_data=val_ds_1,
-    epochs=25
+    epochs=5
 )
 
 Config.set_labels_path(Path("data/track_2.csv"))
@@ -56,16 +56,16 @@ train_ds_2, val_ds_2 = Data.training(0.8, 0.2, 4, False)
 hist1 = model.fit(
     train_ds_2,
     validation_data=val_ds_2,
-    epochs=25
+    epochs=5
 )
 model.save("newmodel/mobnet/stage1")
 # %% Setup the main data
-train_ds_norm, val_ds_norm = DataOld.training(0.8, 0.2, 8, False)
+train_ds_norm, val_ds_norm = DataOld.training(1, 0, 64, False)
 
 hist2 = model.fit(
     train_ds_norm,
-    validation_data=val_ds_norm,
-    epochs=25
+    epochs=100,
+    callbacks=[keras.callbacks.ModelCheckpoint("newmodel/mobnet/checkpoint")]
 )
 model.save("newmodel/mobnet/stage2")
 # %%
