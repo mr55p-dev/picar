@@ -20,7 +20,7 @@ class Model:
             #print("No image passed")
             #return 0, 90
         img = img.astype('float32')
-        img = cv2.resize(img, (224, 224))
+        # img = cv2.resize(img, (224, 224))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
         img = expand_dims(img, 0)
 
