@@ -15,8 +15,6 @@ class BaseModel():
         use_wandb=True,
         verbose=True,
         paitence=None,
-        kernel_width=None,
-        network_width=None,
         dropout_rate=None,
         activation=None,
         ):
@@ -25,8 +23,6 @@ class BaseModel():
         self.verbosity = 1 if verbose else 0
 
         # Define the parameters
-        self.kernel_width = kernel_width or 1
-        self.network_width = network_width or 1
         self.activation = activation or 'relu'
         self.optimizer = tf.optimizers.Adam()
         self.loss = tf.losses.MeanSquaredError()
@@ -140,148 +136,79 @@ class BaseModel():
 class NVidia(BaseModel):
     """Implements the model specified by the Nvidia researchers"""
     def __init__(self, **kwargs):
-        super().__init__("Nvidia", **kwargs)
+        super().__init__("Nvidia_base", **kwargs)
 
     def specify_model(self):
         i = tf.keras.Input(shape=(224, 224, 3))
         l = tf.keras.layers.BatchNormalization()(i)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 24), (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Conv2D(24, (5, 5), strides=(2, 2))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 36), (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Conv2D(36, (5, 5), strides=(2, 2))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 48), (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Conv2D(48, (5, 5), strides=(2, 2))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         l = tf.keras.layers.MaxPool2D((2, 2))(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(l)
+        l = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
-        l = tf.keras.layers.Conv2D(int(self.kernel_width * 64), (3, 3), strides=(1, 1))(l)
+        l = tf.keras.layers.Conv2D(64, (3, 3), strides=(1, 1))(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         l = tf.keras.layers.MaxPool2D((2, 2))(l)
 
         l = tf.keras.layers.Flatten()(l)
 
-        l = tf.keras.layers.Dense(int(self.network_width * 128))(l)
+        l = tf.keras.layers.Dense(128)(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         l = tf.keras.layers.Dropout(0.25)(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 64))(l)
+        l = tf.keras.layers.Dense(64)(l)
         l = tf.keras.layers.Activation(self.activation)(l)
         o = tf.keras.layers.Dense(2)(l)
         return i, o
 
-class ResNet(BaseModel):
-    """Implements a ResNet model, with split output heads. This model can be a little bit unstable"""
+class NVidiaBig(BaseModel):
+    """Implements the model specified by the Nvidia researchers"""
     def __init__(self, **kwargs):
-        super().__init__("ResNetPT", **kwargs)
-        self.loss = {
-            "angle": tf.keras.losses.MeanAbsoluteError(),
-            "speed": tf.keras.losses.BinaryCrossentropy()
-        }
-        self.metrics = {
-            "angle": tf.keras.metrics.RootMeanSquaredError(),
-            "speed": tf.keras.metrics.BinaryAccuracy(),
-        }
+        super().__init__("Nvidia_big", **kwargs)
 
     def specify_model(self):
-        base_model = tf.keras.applications.ResNet50V2(
-            include_top=False,
-            weights="imagenet",
-            input_shape=(224, 224, 3),
-            pooling="avg",
-        )
         i = tf.keras.Input(shape=(224, 224, 3))
-        i = tf.keras.layers.RandomContrast(0.2)(i)
         l = tf.keras.layers.BatchNormalization()(i)
-        l = base_model(l)
-
-        left = tf.keras.layers.Dense(int(self.network_width * 128))(l)
-        left = tf.keras.layers.Activation(self.activation)(left)
-        left = tf.keras.layers.BatchNormalization()(left)
-        left = tf.keras.layers.Dense(int(self.network_width * 64))(l)
-        left = tf.keras.layers.Activation(self.activation)(left)
-        left = tf.keras.layers.BatchNormalization()(left)
-        left = tf.keras.layers.Dense(1, name="angle")(left)
-
-        right = tf.keras.layers.Dense(int(self.network_width * 128))(l)
-        right = tf.keras.layers.Activation(self.activation)(right)
-        right = tf.keras.layers.BatchNormalization()(right)
-        right = tf.keras.layers.Dense(int(self.network_width * 64))(l)
-        right = tf.keras.layers.Activation(self.activation)(right)
-        right = tf.keras.layers.BatchNormalization()(right)
-        right = tf.keras.layers.Dense(1, name="speed")(right)
-        return i, (left, right)
-    
-class EfficientNet(BaseModel):
-    def __init__(self, **kwargs):
-        super().__init__("EfficientNet", **kwargs)
-
-    def specify_model(self):
-        base_model = tf.keras.applications.EfficientNet(
-            include_top=False,
-            weights="imagenet",
-            input_shape=(224, 224, 3),
-            pooling="avg",
-        )
-        i = tf.keras.Input(shape=(224, 224, 3))
-        i = tf.keras.layers.RandomContrast(0.2)(i)
-        l = base_model(i)
-        l = tf.keras.layers.Dense(int(self.network_width * 2048), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.Conv2D(int(2 * 24), (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(2 * 36), (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(2 * 48), (5, 5), strides=(2, 2))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.MaxPool2D((2, 2))(l)
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 1024), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.Conv2D(int(2 * 64), (3, 3), strides=(1, 1))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Conv2D(int(2 * 64), (3, 3), strides=(1, 1))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.MaxPool2D((2, 2))(l)
+
+        l = tf.keras.layers.Flatten()(l)
+
         l = tf.keras.layers.BatchNormalization()(l)
-        l = tf.keras.layers.Dense(int(self.network_width * 512), activation=self.activation)(l)
-        l = tf.keras.layers.Dropout(0.2)(l)
+        l = tf.keras.layers.Dense(int(2 * 512))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Dropout(0.25)(l)
+
         l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Dense(int(2 * 256))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Dropout(0.25)(l)
 
-        left = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
-        left = tf.keras.layers.Dense(1)(left)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Dense(int(2 * 128))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        l = tf.keras.layers.Dropout(0.25)(l)
 
-        right = tf.keras.layers.Dense(int(self.network_width * 64), activation=self.activation)(l)
-        right   = tf.keras.layers.Dense(1)(right)
-    
-class InceptionResNet(BaseModel):
-    def __init__(self, **kwargs):
-        super().__init__("InceptionResNet", **kwargs)
-        self.loss = {
-            "angle": tf.keras.losses.MeanSquaredError(),
-            "speed": tf.keras.losses.BinaryCrossentropy()
-        }
-        self.metrics = {
-            "angle": tf.keras.metrics.RootMeanSquaredError(),
-            "speed": tf.keras.metrics.BinaryAccuracy(),
-        }
-
-    def specify_model(self):
-        base_model = tf.keras.applications.InceptionResNetV2(
-            include_top=False,
-            weights=None,
-            input_shape=(224, 224, 3),
-            pooling="avg",
-        )
-        i = tf.keras.Input(shape=(224, 224, 3))
-        i = tf.keras.layers.RandomContrast(0.2)(i)
-        l = tf.keras.layers.BatchNormalization()(i)
-        l = base_model(l)
-
-        left = tf.keras.layers.Dense(int(self.network_width * 128))(l)
-        left = tf.keras.layers.Activation(self.activation)(left)
-        left = tf.keras.layers.BatchNormalization()(left)
-        left = tf.keras.layers.Dense(int(self.network_width * 64))(l)
-        left = tf.keras.layers.Activation(self.activation)(left)
-        left = tf.keras.layers.BatchNormalization()(left)
-        left = tf.keras.layers.Dense(1, name="angle")(left)
-
-        right = tf.keras.layers.Dense(int(self.network_width * 128))(l)
-        right = tf.keras.layers.Activation(self.activation)(right)
-        right = tf.keras.layers.BatchNormalization()(right)
-        right = tf.keras.layers.Dense(int(self.network_width * 64))(l)
-        right = tf.keras.layers.Activation(self.activation)(right)
-        right = tf.keras.layers.BatchNormalization()(right)
-        right = tf.keras.layers.Dense(1, name="speed")(right)
-
-        return i, (left, right)
+        l = tf.keras.layers.BatchNormalization()(l)
+        l = tf.keras.layers.Dense(int(2 * 128))(l)
+        l = tf.keras.layers.Activation(self.activation)(l)
+        o = tf.keras.layers.Dense(2)(l)
+        return i, o
 
 class MultiHeaded(BaseModel):
     def __init__(self, **kwargs):
@@ -322,3 +249,117 @@ class MultiHeaded(BaseModel):
         right = tf.keras.layers.Dense(64, activation="relu")(right)
         right = tf.keras.layers.Dense(2, name="speed")(right)
         return i, (left, right)
+
+class TransferLearningBase(BaseModel):
+    """Implements a ResNet model, with split output heads. This model can be a little bit unstable"""
+    def __init__(self,name, **kwargs):
+        super().__init__(name, **kwargs)
+        self.loss = {
+            "angle": tf.keras.losses.MeanAbsoluteError(),
+            "speed": tf.keras.losses.BinaryCrossentropy()
+        }
+        self.metrics = {
+            "angle": tf.keras.metrics.RootMeanSquaredError(),
+            "speed": tf.keras.metrics.BinaryAccuracy(),
+        }
+
+    @abstractmethod
+    def get_base(self):
+        ...
+
+    def specify_model(self):
+        i = tf.keras.Input(shape=(224, 224, 3))
+        i = tf.keras.layers.RandomContrast(0.2)(i)
+        l = tf.keras.layers.BatchNormalization()(i)
+        l = self.get_base()(l)
+        l = tf.keras.layers.BatchNormalization()(l)
+
+        left = tf.keras.layers.Dense(128)(l)
+        left = tf.keras.layers.Activation(self.activation)(left)
+        left = tf.keras.layers.Dropout(0.25)(left)
+        left = tf.keras.layers.BatchNormalization()(left)
+
+        left = tf.keras.layers.Dense(64)(l)
+        left = tf.keras.layers.Activation(self.activation)(left)
+        left = tf.keras.layers.Dense(1, name="angle")(left)
+
+        right = tf.keras.layers.Dense(128)(l)
+        right = tf.keras.layers.Activation(self.activation)(right)
+        right = tf.keras.layers.Dropout(0.25)(right)
+        right = tf.keras.layers.BatchNormalization()(right)
+
+        right = tf.keras.layers.Dense(64)(l)
+        right = tf.keras.layers.Activation(self.activation)(right)
+        right = tf.keras.layers.BatchNormalization()(right)
+        right = tf.keras.layers.Dense(1, name="speed")(right)
+        return i, (left, right)
+
+class Resnet50Img(TransferLearningBase):
+    def __init__(self, **kwargs):
+        super().__init__("resnet_50_imagenet", **kwargs)
+
+    def get_base(self):
+        model = tf.keras.applications.ResNet50V2(
+            include_top=False,
+            weights="imagenet",
+            input_shape=(224, 224, 3),
+            pooling="avg",
+        )
+        model.trainable = False
+        return model
+
+class Resnet50Bare(TransferLearningBase):
+    def __init__(self, **kwargs):
+        super().__init__("resnet_50_bare", **kwargs)
+
+    def get_base(self):
+        model = tf.keras.applications.ResNet50V2(
+            include_top=False,
+            weights=None,
+            input_shape=(224, 224, 3),
+            pooling="avg",
+        )
+        model.trainable = True
+        return model
+
+class Resnet101Img(TransferLearningBase):
+    def __init__(self, **kwargs):
+        super().__init__("resnet_101_imagenet", **kwargs)
+
+    def get_base(self):
+        model = tf.keras.applications.ResNet101V2(
+            include_top=False,
+            weights="imagenet",
+            input_shape=(224, 224, 3),
+            pooling="avg",
+        )
+        model.trainable = False
+        return model
+
+class Efficientnet(TransferLearningBase):
+    def __init__(self, **kwargs):
+        super().__init__("efficient_net", **kwargs)
+
+    def specify_model(self):
+        model = tf.keras.applications.EfficientNet(
+            include_top=False,
+            weights="imagenet",
+            input_shape=(224, 224, 3),
+            pooling="avg",
+        )
+        model.trainable = False
+        return model
+
+class InceptionResnet(TransferLearningBase):
+    def __init__(self, **kwargs):
+        super().__init__("inception_resnet", **kwargs)
+
+    def specify_model(self):
+        model = tf.keras.applications.InceptionResNetV2(
+            include_top=False,
+            weights="imagenet",
+            input_shape=(224, 224, 3),
+            pooling="avg",
+        )
+        model.trainable = False
+        return model

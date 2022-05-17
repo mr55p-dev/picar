@@ -6,8 +6,7 @@ import tensorflow as tf
 import wandb
 
 from PyCrashed.data import Data, clean_predictions
-from PyCrashed.models import (BaseModel, EfficientNet, InceptionResNet, MultiHeaded, NVidia,
-                              ResNet)
+from PyCrashed.models import (BaseModel, NVidia, NVidiaBig, MultiHeaded, Resnet50Img, Resnet50Bare, Resnet101Img, Efficientnet, InceptionResnet)
 
 
 def get_printf(verbose):
@@ -18,10 +17,13 @@ def get_printf(verbose):
 # Each model from PyCrashed.models must be added here, kind of laborious but ust easier
 models = {
     "nvidia": NVidia,
-    "efficientnet": EfficientNet,
-    "resnet": ResNet,
+    "nvidia_big": NVidiaBig,
     "multiheaded": MultiHeaded,
-    "inceptionresnet": InceptionResNet,
+    "efficientnet": Efficientnet,
+    "resnet_50_imagenet": Resnet50Img,
+    "resnet_50_bare": Resnet50Bare,
+    "resnet_101_imagenet": Resnet50Img,
+    "inceptionresnet": InceptionResnet,
 }
 
 def list_models(args):
@@ -54,8 +56,6 @@ def train_model(args):
         model: BaseModel = models[args.model](
             verbose=args.verbose,
             paitence=args.paitence or args.epochs,
-            kernel_width=args.kernel_width,
-            network_width=args.network_width,
             dropout_rate=args.dropout,
             activation=args.activation,
         )

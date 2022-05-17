@@ -20,12 +20,12 @@ parser.add_argument(
 parser.add_argument(
     "-nt", "--train", 
     help="Number of instances to use for training. (percentage)", 
-    type=float, default=.65
+    type=float, default=.85
 )
 parser.add_argument(
-    "-nv", "--val", 
-    help="Number of instances to use for validation. (percentage)", 
-    type=float, default=.25
+    "-nv", "--val",
+    help="Number of instances to use for validation. (percentage)",
+    type=float, default=.15
 )
 parser.add_argument(
     "--restore", 
@@ -51,16 +51,6 @@ parser.add_argument(
     "-d", "--dropout", 
     help="Drouput rate to use in the NN", 
     type=float, default=0.0, 
-)
-parser.add_argument(
-    "-kw", "--kernel-width", 
-    help="Multiplier for the number of kernels used", 
-    type=float, default=1, 
-)
-parser.add_argument(
-    "-nw", "--network-width", 
-    help="Multiplier for the number of nodes in the neural network", 
-    type=float, default=1, 
 )
 parser.add_argument(
     "-p", "--paitence", 

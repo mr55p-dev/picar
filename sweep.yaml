@@ -10,23 +10,19 @@ metric:
   name: val_loss
 parameters:
   model:
-    value: "nvidia"
+    values: [nvidia_big, multiheaded, efficientnet, resnet_50_imagenet, resnet_50_bare, resnet_101_imagenet, inceptionresnet]
   epochs:
-    value: 50
+    value: 75
   dropout:
-    values: [0, 0.25, 0.45]
+    value: 0.45
   batch:
-    values: [128, 512]
+    values: 128
   activation:
-    values: ["relu", "leaky_relu", "elu"]
+    value: "relu"
   optimizer:
-    values: ["adam", "adamax", "Nadam"]
-  kernel-width:
-    values: [1, 2]
-  network-width:
-    values: [1, 2]
+    values: ["adamax"]
   paitence:
-    value: 25
+    value: 10
 early_terminate:
   type: hyperband
   s: 2

@@ -43,7 +43,7 @@ train_command.add_argument(
 train_command.add_argument(
     "-a", "--activation", 
     help="Activation funciton (default is relu)", 
-    type=str, default=None, 
+    type=str, default=None,
 )
 train_command.add_argument(
     "-o", "--optimizer", 
@@ -59,16 +59,6 @@ train_command.add_argument(
     "-d", "--dropout", 
     help="Drouput rate to use in the NN", 
     type=float, default=0.0, 
-)
-train_command.add_argument(
-    "-kw", "--kernel-width", 
-    help="Multiplier for the number of kernels used", 
-    type=float, default=1, 
-)
-train_command.add_argument(
-    "-nw", "--network-width", 
-    help="Multiplier for the number of nodes in the neural network", 
-    type=float, default=1, 
 )
 train_command.add_argument(
     "-p", "--paitence", 
