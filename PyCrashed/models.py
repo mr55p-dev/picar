@@ -341,7 +341,7 @@ class Efficientnet(TransferLearningBase):
         super().__init__("efficient_net", **kwargs)
 
     def specify_model(self):
-        model = tf.keras.applications.EfficientNet(
+        model = tf.keras.applications.EfficientNetB7(
             include_top=False,
             weights="imagenet",
             input_shape=(224, 224, 3),

@@ -16,7 +16,7 @@ parameters:
   dropout:
     value: 0.45
   batch:
-    values: 128
+    value: 128
   activation:
     value: "relu"
   optimizer:
