@@ -242,7 +242,7 @@ class MultiHeaded(BaseModel):
         left = tf.keras.layers.Dense(1164, activation="relu")(l)
         left = tf.keras.layers.Dropout(0.2)(left)
         left = tf.keras.layers.Dense(64, activation="relu")(left)
-        left = tf.keras.layers.Dense(2, name="steering_angle")(left)
+        left = tf.keras.layers.Dense(2, name="angle")(left)
 
         right = tf.keras.layers.Dense(1164, activation="relu")(l)
         right = tf.keras.layers.Dropout(0.2)(right)
@@ -269,7 +269,7 @@ class TransferLearningBase(BaseModel):
 
     def specify_model(self):
         i = tf.keras.Input(shape=(224, 224, 3))
-        i = tf.keras.layers.RandomContrast(0.2)(i)
+        l = tf.keras.layers.RandomContrast(0.2)(i)
         l = tf.keras.layers.BatchNormalization()(i)
         l = self.get_base()(l)
         l = tf.keras.layers.BatchNormalization()(l)
@@ -279,7 +279,7 @@ class TransferLearningBase(BaseModel):
         left = tf.keras.layers.Dropout(0.25)(left)
         left = tf.keras.layers.BatchNormalization()(left)
 
-        left = tf.keras.layers.Dense(64)(l)
+        left = tf.keras.layers.Dense(64)(left)
         left = tf.keras.layers.Activation(self.activation)(left)
         left = tf.keras.layers.Dense(1, name="angle")(left)
 
@@ -288,10 +288,11 @@ class TransferLearningBase(BaseModel):
         right = tf.keras.layers.Dropout(0.25)(right)
         right = tf.keras.layers.BatchNormalization()(right)
 
-        right = tf.keras.layers.Dense(64)(l)
+        right = tf.keras.layers.Dense(64)(right)
         right = tf.keras.layers.Activation(self.activation)(right)
         right = tf.keras.layers.BatchNormalization()(right)
         right = tf.keras.layers.Dense(1, name="speed")(right)
+
         return i, (left, right)
 
 class Resnet50Img(TransferLearningBase):
@@ -340,7 +341,7 @@ class Efficientnet(TransferLearningBase):
     def __init__(self, **kwargs):
         super().__init__("efficient_net", **kwargs)
 
-    def specify_model(self):
+    def get_base(self):
         model = tf.keras.applications.EfficientNetB7(
             include_top=False,
             weights="imagenet",
@@ -354,7 +355,7 @@ class InceptionResnet(TransferLearningBase):
     def __init__(self, **kwargs):
         super().__init__("inception_resnet", **kwargs)
 
-    def specify_model(self):
+    def get_base(self):
         model = tf.keras.applications.InceptionResNetV2(
             include_top=False,
             weights="imagenet",
